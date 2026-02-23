@@ -24,7 +24,7 @@ const ProductPage = () => {
   const conditionIndex = conditionLevels.indexOf(product.condition);
 
   return (
-    <main className="pt-32 pb-24">
+    <main className="pt-36 lg:pt-44 pb-24">
       <div className="max-w-[1400px] mx-auto px-6">
         {/* Breadcrumb */}
         <nav className="mb-10">
@@ -105,11 +105,14 @@ const ProductPage = () => {
 
             {/* Buttons */}
             <div className="flex flex-col gap-3 mb-10">
-              <button className="w-full bg-primary text-primary-foreground py-4 editorial-heading text-[11px] hover:opacity-80 transition-opacity">
+              <button className="w-full bg-primary text-primary-foreground py-4 editorial-heading text-[11px] hover:opacity-80 transition-opacity min-h-[48px]">
                 Add to Cart
               </button>
-              <button className="w-full border border-foreground py-4 editorial-heading text-[11px] hover:bg-foreground hover:text-background transition-all duration-300">
+              <button className="w-full border border-foreground py-4 editorial-heading text-[11px] hover:bg-foreground hover:text-background transition-all duration-300 min-h-[48px]">
                 Buy Now
+              </button>
+              <button className="w-full border border-border py-4 editorial-heading text-[11px] hover:border-foreground transition-all duration-300 min-h-[48px]">
+                Make an Offer
               </button>
             </div>
 
