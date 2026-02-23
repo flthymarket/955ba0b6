@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Instagram } from "lucide-react";
 
 const Footer = () => {
   return (
@@ -9,7 +10,7 @@ const Footer = () => {
             <h4 className="editorial-heading text-[10px] mb-6">Shop</h4>
             <nav className="flex flex-col gap-3">
               <Link to="/collection?filter=new" className="nav-link text-[9px] text-muted-foreground">New Arrivals</Link>
-              <Link to="/collection?filter=clothing" className="nav-link text-[9px] text-muted-foreground">Clothing</Link>
+              <Link to="/collection" className="nav-link text-[9px] text-muted-foreground">All</Link>
               <Link to="/collection?filter=footwear" className="nav-link text-[9px] text-muted-foreground">Footwear</Link>
               <Link to="/collection?filter=accessories" className="nav-link text-[9px] text-muted-foreground">Accessories</Link>
             </nav>
@@ -26,8 +27,15 @@ const Footer = () => {
           <div>
             <h4 className="editorial-heading text-[10px] mb-6">Connect</h4>
             <nav className="flex flex-col gap-3">
-              <a href="#" className="nav-link text-[9px] text-muted-foreground">Instagram</a>
-              <a href="#" className="nav-link text-[9px] text-muted-foreground">Twitter</a>
+              <a href="https://instagram.com/flthymrkt" target="_blank" rel="noopener noreferrer" className="nav-link text-[9px] text-muted-foreground flex items-center gap-2">
+                <Instagram className="w-3 h-3" /> Instagram
+              </a>
+              <a href="https://tiktok.com/@flthymrkt" target="_blank" rel="noopener noreferrer" className="nav-link text-[9px] text-muted-foreground flex items-center gap-2">
+                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+                </svg>
+                TikTok
+              </a>
               <Link to="/help#contact" className="nav-link text-[9px] text-muted-foreground">Contact</Link>
             </nav>
           </div>

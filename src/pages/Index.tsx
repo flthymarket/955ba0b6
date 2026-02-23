@@ -58,34 +58,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Stories */}
-      <section className="max-w-[1400px] mx-auto px-6 py-24">
-        <h2 className="section-title">Stories</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
-          <div className="aspect-square overflow-hidden">
-            <img
-              src={storyImage}
-              alt="Editorial"
-              className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700"
-            />
-          </div>
-          <div className="flex flex-col justify-center p-12 md:p-20">
-            <span className="editorial-heading text-[9px] text-muted-foreground mb-4">Archive 001</span>
-            <h3 className="text-xl md:text-2xl tracking-[0.2em] font-extralight mb-6">
-              The Art of Preservation
-            </h3>
-            <p className="text-[11px] leading-relaxed text-muted-foreground font-light mb-8 max-w-sm">
-              How luxury garments transcend seasons and become artifacts worthy of archival. An exploration of craft, care, and timeless design.
-            </p>
-            <Link
-              to="/stories"
-              className="editorial-heading text-[10px] border-b border-foreground self-start pb-1 hover:opacity-50 transition-opacity"
-            >
-              Read More
-            </Link>
-          </div>
-        </div>
-      </section>
+      {/* Stories - only show if stories exist from DB, placeholder removed */}
     </main>
   );
 };

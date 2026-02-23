@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Search, User, ShoppingBag, ChevronDown, X } from "lucide-react";
+import { Search, User, ShoppingBag, ChevronDown, X, Menu } from "lucide-react";
 import logo from "@/assets/logo.png";
 
 const navLinks = [
   { label: "New Arrivals", href: "/collection?filter=new" },
-  { label: "Brands", href: "/collection?filter=brands" },
-  { label: "Clothing", href: "/collection?filter=clothing" },
+  { label: "Brands", href: "/brands" },
+  { label: "All", href: "/collection" },
   { label: "Footwear", href: "/collection?filter=footwear" },
   { label: "Accessories", href: "/collection?filter=accessories" },
   { label: "Stories", href: "/stories" },
@@ -45,70 +45,55 @@ const Header = () => {
         {/* Top bar */}
         <div className="border-b border-border">
           <div className="max-w-[1400px] mx-auto px-6 py-2 flex justify-between items-center">
-            <span className="editorial-heading text-muted-foreground text-[9px]">
-              Authenticated Luxury Resale
+            <span className="text-[9px] tracking-[0.2em] uppercase font-light">
+              FLTHYMRKT
             </span>
-            <div className="relative">
-              <button
-                onClick={() => setHelpOpen(!helpOpen)}
-                className="nav-link text-[9px] flex items-center gap-1 text-muted-foreground"
-              >
-                Help <ChevronDown className="w-3 h-3" />
-              </button>
-              {helpOpen && (
-                <div className="absolute right-0 top-full mt-2 bg-background border border-border py-3 px-6 min-w-[200px] z-50">
-                  {helpLinks.map((link) => (
-                    <Link
-                      key={link.label}
-                      to={link.href}
-                      className="block py-2 nav-link text-[9px]"
-                      onClick={() => setHelpOpen(false)}
-                    >
-                      {link.label}
-                    </Link>
-                  ))}
-                </div>
-              )}
+            <div className="flex items-center gap-6">
+              <div className="relative">
+                <button
+                  onClick={() => setHelpOpen(!helpOpen)}
+                  className="nav-link text-[9px] flex items-center gap-1 text-muted-foreground"
+                >
+                  Help <ChevronDown className="w-3 h-3" />
+                </button>
+                {helpOpen && (
+                  <div className="absolute right-0 top-full mt-2 bg-background border border-border py-3 px-6 min-w-[200px] z-50">
+                    {helpLinks.map((link) => (
+                      <Link
+                        key={link.label}
+                        to={link.href}
+                        className="block py-2 nav-link text-[9px]"
+                        onClick={() => setHelpOpen(false)}
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Main header */}
+        {/* Main header - Logo centered, nav below */}
         <div className="max-w-[1400px] mx-auto px-6">
-          <div className="flex items-center justify-between h-16 md:h-20">
-            {/* Left nav - desktop */}
-            <nav className="hidden lg:flex items-center gap-8 flex-1">
-              {navLinks.slice(0, 3).map((link) => (
-                <Link key={link.label} to={link.href} className="nav-link">
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
-
-            {/* Mobile menu toggle */}
+          {/* Top row: mobile menu + logo centered + icons */}
+          <div className="relative flex items-center justify-center py-4">
+            {/* Mobile menu toggle - absolute left */}
             <button
-              className="lg:hidden nav-link"
+              className="lg:hidden absolute left-0"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
-              {mobileMenuOpen ? "CLOSE" : "MENU"}
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
 
-            {/* Center logo */}
+            {/* Center logo - larger */}
             <Link to="/" className="flex-shrink-0">
-              <img src={logo} alt="Logo" className="h-10 md:h-12 w-auto" />
+              <img src={logo} alt="FLTHY MRKT" className="h-14 md:h-16 lg:h-20 w-auto" />
             </Link>
 
-            {/* Right nav - desktop */}
-            <nav className="hidden lg:flex items-center gap-8 flex-1 justify-end">
-              {navLinks.slice(3).map((link) => (
-                <Link key={link.label} to={link.href} className="nav-link">
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
-
-            {/* Right icons */}
-            <div className="flex items-center gap-5 ml-8">
+            {/* Right icons - absolute right */}
+            <div className="flex items-center gap-5 absolute right-0">
               <button
                 onClick={() => setSearchOpen(true)}
                 className="transition-opacity duration-300 hover:opacity-50"
@@ -132,12 +117,21 @@ const Header = () => {
               </button>
             </div>
           </div>
+
+          {/* Desktop navigation below logo */}
+          <nav className="hidden lg:flex items-center justify-center gap-8 pb-4 border-b border-border">
+            {navLinks.map((link) => (
+              <Link key={link.label} to={link.href} className="nav-link">
+                {link.label}
+              </Link>
+            ))}
+          </nav>
         </div>
       </header>
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-40 bg-background pt-32 px-6">
+        <div className="fixed inset-0 z-40 bg-background pt-36 px-6">
           <nav className="flex flex-col gap-6">
             {navLinks.map((link) => (
               <Link

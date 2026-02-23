@@ -1,18 +1,20 @@
 import { useState } from "react";
-import { ChevronDown, SlidersHorizontal, X } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { ChevronDown, SlidersHorizontal } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
 import { products } from "@/data/products";
 
 const filterSections = [
   { label: "Brand", options: ["Saint Laurent", "Balenciaga", "Bottega Veneta", "Tom Ford"] },
-  { label: "Category", options: ["Clothing", "Footwear", "Accessories"] },
-  { label: "Condition", options: ["Pristine", "Excellent", "Great", "Good", "Fair"] },
-  { label: "Size", options: ["XS", "S", "M", "L", "XL", "OS"] },
+  { label: "Size", options: ["XS", "S", "M", "L", "XL", "OS", "40", "42", "43", "44"] },
+  { label: "Price", options: ["Under $500", "$500–$1000", "$1000–$2000", "Over $2000"] },
 ];
 
 const sortOptions = ["Newest", "Price: Low to High", "Price: High to Low"];
 
 const Collection = () => {
+  const [searchParams] = useSearchParams();
+  const filter = searchParams.get("filter");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [openSections, setOpenSections] = useState<string[]>([]);
   const [sortOpen, setSortOpen] = useState(false);
@@ -24,11 +26,25 @@ const Collection = () => {
     );
   };
 
+  // Footwear coming soon
+  if (filter === "footwear") {
+    return (
+      <main className="pt-32 pb-24">
+        <div className="max-w-[1400px] mx-auto px-6 flex items-center justify-center min-h-[50vh] pt-8">
+          <div className="text-center">
+            <h1 className="text-lg tracking-[0.3em] font-extralight uppercase mb-4">Coming Soon</h1>
+            <p className="text-[11px] text-muted-foreground tracking-wide font-light">
+              Footwear collection launching soon.
+            </p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="pt-32 pb-24">
       <div className="max-w-[1400px] mx-auto px-6">
-        <h1 className="section-title mb-16">Collection</h1>
-
         {/* Toolbar */}
         <div className="flex items-center justify-between mb-10 border-b border-border pb-4">
           <button
@@ -109,7 +125,7 @@ const Collection = () => {
 
           {/* Product grid */}
           <div className="flex-1">
-            <div className={`grid gap-6 ${filtersOpen ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"}`}>
+            <div className={`grid gap-6 grid-cols-1 sm:grid-cols-2 ${filtersOpen ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
               {products.map((product) => (
                 <ProductCard key={product.id} {...product} />
               ))}

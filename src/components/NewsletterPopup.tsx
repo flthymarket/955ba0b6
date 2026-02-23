@@ -28,7 +28,7 @@ const NewsletterPopup = () => {
         </button>
         <div className="text-center">
           <h3 className="text-lg tracking-[0.3em] uppercase font-extralight mb-3">
-            Join the Archive
+            Join our Newsletter
           </h3>
           <p className="text-[11px] text-muted-foreground tracking-wide font-light mb-8">
             Early access to drops & exclusives.
