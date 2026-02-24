@@ -14,10 +14,10 @@ const navLinks = [
 
 const helpLinks = [
   { label: "Contact Support", href: "/help#contact" },
-  { label: "Shipping Policy", href: "/help#shipping" },
-  { label: "Refund Policy", href: "/help#refund" },
-  { label: "Privacy Policy", href: "/help#privacy" },
-  { label: "Terms of Service", href: "/help#terms" },
+  { label: "Shipping Policy", href: "/help#shipping-policy" },
+  { label: "Refund Policy", href: "/help#refund-policy" },
+  { label: "Privacy Policy", href: "/help#privacy-policy" },
+  { label: "Terms of Service", href: "/help#terms-of-service" },
 ];
 
 const Header = () => {
