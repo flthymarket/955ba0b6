@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { Instagram } from "lucide-react";
 
 const Footer = () => {
   return (
@@ -18,22 +17,19 @@ const Footer = () => {
           <div>
             <h4 className="editorial-heading text-[10px] mb-6">Information</h4>
             <nav className="flex flex-col gap-3">
-              <Link to="/help#shipping" className="nav-link text-[9px] text-muted-foreground">Shipping Policy</Link>
-              <Link to="/help#refund" className="nav-link text-[9px] text-muted-foreground">Refund Policy</Link>
-              <Link to="/help#privacy" className="nav-link text-[9px] text-muted-foreground">Privacy Policy</Link>
-              <Link to="/help#terms" className="nav-link text-[9px] text-muted-foreground">Terms of Service</Link>
+              <Link to="/help#shipping-policy" className="nav-link text-[9px] text-muted-foreground">Shipping Policy</Link>
+              <Link to="/help#refund-policy" className="nav-link text-[9px] text-muted-foreground">Refund Policy</Link>
+              <Link to="/help#privacy-policy" className="nav-link text-[9px] text-muted-foreground">Privacy Policy</Link>
+              <Link to="/help#terms-of-service" className="nav-link text-[9px] text-muted-foreground">Terms of Service</Link>
             </nav>
           </div>
           <div>
             <h4 className="editorial-heading text-[10px] mb-6">Connect</h4>
             <nav className="flex flex-col gap-3">
-              <a href="https://instagram.com/flthymrkt" target="_blank" rel="noopener noreferrer" className="nav-link text-[9px] text-muted-foreground flex items-center gap-2">
-                <Instagram className="w-3 h-3" /> Instagram
+              <a href="https://instagram.com/flthymrkt" target="_blank" rel="noopener noreferrer" className="nav-link text-[9px] text-muted-foreground">
+                Instagram
               </a>
-              <a href="https://tiktok.com/@flthymrkt" target="_blank" rel="noopener noreferrer" className="nav-link text-[9px] text-muted-foreground flex items-center gap-2">
-                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
-                </svg>
+              <a href="https://tiktok.com/@flthymrkt" target="_blank" rel="noopener noreferrer" className="nav-link text-[9px] text-muted-foreground">
                 TikTok
               </a>
               <Link to="/help#contact" className="nav-link text-[9px] text-muted-foreground">Contact</Link>
