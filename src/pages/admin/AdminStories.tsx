@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "./AdminLayout";
+import ImageUpload from "@/components/ImageUpload";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -30,10 +31,8 @@ const AdminStories = () => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     const data = {
-      title: form.title,
-      image_url: form.image_url || null,
-      content: form.content || null,
-      published: form.published,
+      title: form.title, image_url: form.image_url || null,
+      content: form.content || null, published: form.published,
       publish_date: new Date().toISOString(),
     };
     if (editing) {
@@ -73,9 +72,9 @@ const AdminStories = () => {
               className="w-full border border-border bg-transparent px-3 py-2 text-[11px] outline-none" />
           </div>
           <div>
-            <label className="text-[9px] tracking-widest uppercase text-muted-foreground block mb-1">Image URL</label>
-            <input value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-              className="w-full border border-border bg-transparent px-3 py-2 text-[11px] outline-none" />
+            <label className="text-[9px] tracking-widest uppercase text-muted-foreground block mb-2">Cover Image</label>
+            <ImageUpload bucket="story-images" currentUrl={form.image_url}
+              onUpload={(url) => setForm({ ...form, image_url: url })} className="w-48" />
           </div>
           <div>
             <label className="text-[9px] tracking-widest uppercase text-muted-foreground block mb-1">Content</label>

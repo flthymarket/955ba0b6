@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "./AdminLayout";
+import ImageUpload from "@/components/ImageUpload";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -65,9 +66,9 @@ const AdminBrands = () => {
               className="w-full border border-border bg-transparent px-3 py-2 text-[11px] outline-none focus:border-foreground" />
           </div>
           <div>
-            <label className="text-[9px] tracking-widest uppercase text-muted-foreground block mb-1">Logo URL</label>
-            <input value={form.logo_url} onChange={(e) => setForm({ ...form, logo_url: e.target.value })}
-              className="w-full border border-border bg-transparent px-3 py-2 text-[11px] outline-none" />
+            <label className="text-[9px] tracking-widest uppercase text-muted-foreground block mb-2">Logo</label>
+            <ImageUpload bucket="brand-logos" currentUrl={form.logo_url}
+              onUpload={(url) => setForm({ ...form, logo_url: url })} className="w-32" />
           </div>
           <div>
             <label className="text-[9px] tracking-widest uppercase text-muted-foreground block mb-1">Description</label>
@@ -92,12 +93,16 @@ const AdminBrands = () => {
         </button>
       </div>
       <div className="border border-border">
-        <div className="grid grid-cols-[1fr_120px] gap-4 px-6 py-3 border-b border-border bg-muted">
+        <div className="grid grid-cols-[40px_1fr_120px] gap-4 px-6 py-3 border-b border-border bg-muted">
+          <span className="text-[9px] tracking-widest uppercase text-muted-foreground">Logo</span>
           <span className="text-[9px] tracking-widest uppercase text-muted-foreground">Brand Name</span>
           <span className="text-[9px] tracking-widest uppercase text-muted-foreground">Actions</span>
         </div>
         {brands.map((b) => (
-          <div key={b.id} className="grid grid-cols-[1fr_120px] gap-4 px-6 py-4 border-b border-border last:border-b-0 items-center">
+          <div key={b.id} className="grid grid-cols-[40px_1fr_120px] gap-4 px-6 py-4 border-b border-border last:border-b-0 items-center">
+            <div className="w-8 h-8 bg-secondary overflow-hidden flex items-center justify-center">
+              {b.logo_url ? <img src={b.logo_url} alt="" className="w-full h-full object-contain" /> : <span className="text-[8px] text-muted-foreground">—</span>}
+            </div>
             <span className="text-[11px] font-light">{b.name}</span>
             <div className="flex gap-3">
               <button onClick={() => startEdit(b)} className="text-muted-foreground hover:text-foreground"><Pencil className="w-3 h-3" /></button>

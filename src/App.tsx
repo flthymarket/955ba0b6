@@ -9,6 +9,8 @@ import Index from "./pages/Index";
 import Collection from "./pages/Collection";
 import ProductPage from "./pages/ProductPage";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
+import Account from "./pages/Account";
 import Help from "./pages/Help";
 import BrandsPage from "./pages/Brands";
 import Stories from "./pages/Stories";
@@ -33,7 +35,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* Admin routes - no Layout wrapper */}
+            {/* Admin routes */}
             <Route path="/admin" element={<Dashboard />} />
             <Route path="/admin/products" element={<AdminProducts />} />
             <Route path="/admin/brands" element={<AdminBrands />} />
@@ -44,11 +46,13 @@ const App = () => (
             <Route path="/admin/newsletter" element={<AdminNewsletter />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
 
-            {/* Public routes with Layout */}
+            {/* Public routes */}
             <Route path="/" element={<Layout><Index /></Layout>} />
             <Route path="/collection" element={<Layout><Collection /></Layout>} />
             <Route path="/product/:id" element={<Layout><ProductPage /></Layout>} />
             <Route path="/auth" element={<Layout><Auth /></Layout>} />
+            <Route path="/reset-password" element={<Layout><ResetPassword /></Layout>} />
+            <Route path="/account" element={<Layout><Account /></Layout>} />
             <Route path="/help" element={<Layout><Help /></Layout>} />
             <Route path="/brands" element={<Layout><BrandsPage /></Layout>} />
             <Route path="/stories" element={<Layout><Stories /></Layout>} />

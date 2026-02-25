@@ -26,12 +26,7 @@ const Footer = () => {
           <div>
             <h4 className="editorial-heading text-[10px] mb-6">Connect</h4>
             <nav className="flex flex-col gap-3">
-              <a href="https://instagram.com/flthymrkt" target="_blank" rel="noopener noreferrer" className="nav-link text-[9px] text-muted-foreground">
-                Instagram
-              </a>
-              <a href="https://tiktok.com/@flthymrkt" target="_blank" rel="noopener noreferrer" className="nav-link text-[9px] text-muted-foreground">
-                TikTok
-              </a>
+              <a href="mailto:flthymarket@gmail.com" className="nav-link text-[9px] text-muted-foreground">Email Us</a>
               <Link to="/help#contact" className="nav-link text-[9px] text-muted-foreground">Contact</Link>
             </nav>
           </div>
@@ -41,14 +36,9 @@ const Footer = () => {
               Early access to drops & exclusives.
             </p>
             <div className="flex border-b border-foreground">
-              <input
-                type="email"
-                placeholder="EMAIL ADDRESS"
-                className="flex-1 bg-transparent outline-none text-[10px] tracking-widest py-2 placeholder:text-muted-foreground"
-              />
-              <button className="editorial-heading text-[9px] px-2 hover:opacity-50 transition-opacity">
-                →
-              </button>
+              <input type="email" placeholder="EMAIL ADDRESS"
+                className="flex-1 bg-transparent outline-none text-[10px] tracking-widest py-2 placeholder:text-muted-foreground" />
+              <button className="editorial-heading text-[9px] px-2 hover:opacity-50 transition-opacity">→</button>
             </div>
           </div>
         </div>
