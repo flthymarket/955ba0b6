@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "./AdminLayout";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import ImageUpload from "@/components/ImageUpload";
+import { Plus, Pencil, Trash2, Search, GripVertical } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Product {
@@ -14,12 +15,6 @@ interface Product {
   brands?: { name: string } | null;
 }
 
-interface Variant {
-  id: string;
-  size: string;
-  quantity: number;
-}
-
 const AdminProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
@@ -27,7 +22,6 @@ const AdminProducts = () => {
   const [showForm, setShowForm] = useState(false);
   const { toast } = useToast();
 
-  // Form state
   const [form, setForm] = useState({
     name: "", brand_id: "", category: "All", price: "", sku: "",
     description: "", condition: "Good", color: "", material: "",
@@ -35,6 +29,7 @@ const AdminProducts = () => {
   });
   const [variants, setVariants] = useState<{ size: string; quantity: string }[]>([{ size: "", quantity: "1" }]);
   const [brands, setBrands] = useState<{ id: string; name: string }[]>([]);
+  const [productImages, setProductImages] = useState<string[]>([]);
 
   useEffect(() => {
     fetchProducts();
@@ -63,17 +58,10 @@ const AdminProducts = () => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     const productData = {
-      name: form.name,
-      brand_id: form.brand_id || null,
-      category: form.category,
-      price: parseFloat(form.price),
-      sku: form.sku || null,
-      description: form.description || null,
-      condition: form.condition,
-      condition_description: form.condition_description || null,
-      color: form.color || null,
-      material: form.material || null,
-      featured: form.featured,
+      name: form.name, brand_id: form.brand_id || null, category: form.category,
+      price: parseFloat(form.price), sku: form.sku || null, description: form.description || null,
+      condition: form.condition, condition_description: form.condition_description || null,
+      color: form.color || null, material: form.material || null, featured: form.featured,
     };
 
     let productId = editing;
@@ -81,18 +69,20 @@ const AdminProducts = () => {
     if (editing) {
       await supabase.from("products").update(productData).eq("id", editing);
       await supabase.from("product_variants").delete().eq("product_id", editing);
+      await supabase.from("product_images").delete().eq("product_id", editing);
     } else {
       const { data } = await supabase.from("products").insert(productData).select("id").single();
       if (data) productId = data.id;
     }
 
     if (productId) {
-      const variantData = variants
-        .filter((v) => v.size)
+      const variantData = variants.filter((v) => v.size)
         .map((v) => ({ product_id: productId!, size: v.size, quantity: parseInt(v.quantity) || 0 }));
-      if (variantData.length > 0) {
-        await supabase.from("product_variants").insert(variantData);
-      }
+      if (variantData.length > 0) await supabase.from("product_variants").insert(variantData);
+
+      const imageData = productImages.filter(Boolean)
+        .map((url, i) => ({ product_id: productId!, url, sort_order: i }));
+      if (imageData.length > 0) await supabase.from("product_images").insert(imageData);
     }
 
     toast({ title: editing ? "Product updated" : "Product created" });
@@ -103,26 +93,17 @@ const AdminProducts = () => {
   const startEdit = async (id: string) => {
     const { data: product } = await supabase.from("products").select("*").eq("id", id).single();
     const { data: pvariants } = await supabase.from("product_variants").select("*").eq("product_id", id);
+    const { data: imgs } = await supabase.from("product_images").select("url").eq("product_id", id).order("sort_order");
 
     if (product) {
       setForm({
-        name: product.name,
-        brand_id: product.brand_id || "",
-        category: product.category,
-        price: String(product.price),
-        sku: product.sku || "",
-        description: product.description || "",
-        condition: product.condition || "Good",
-        condition_description: product.condition_description || "",
-        color: product.color || "",
-        material: product.material || "",
-        featured: product.featured || false,
+        name: product.name, brand_id: product.brand_id || "", category: product.category,
+        price: String(product.price), sku: product.sku || "", description: product.description || "",
+        condition: product.condition || "Good", condition_description: product.condition_description || "",
+        color: product.color || "", material: product.material || "", featured: product.featured || false,
       });
-      setVariants(
-        pvariants && pvariants.length > 0
-          ? pvariants.map((v) => ({ size: v.size, quantity: String(v.quantity) }))
-          : [{ size: "", quantity: "1" }]
-      );
+      setVariants(pvariants?.length ? pvariants.map((v) => ({ size: v.size, quantity: String(v.quantity) })) : [{ size: "", quantity: "1" }]);
+      setProductImages(imgs?.map((i) => i.url) || []);
       setEditing(id);
       setShowForm(true);
     }
@@ -131,18 +112,12 @@ const AdminProducts = () => {
   const resetForm = () => {
     setForm({ name: "", brand_id: "", category: "All", price: "", sku: "", description: "", condition: "Good", color: "", material: "", featured: false, condition_description: "" });
     setVariants([{ size: "", quantity: "1" }]);
+    setProductImages([]);
     setEditing(null);
     setShowForm(false);
   };
 
-  const totalQty = (productId: string) => {
-    // We'd need variants for this - simplified for now
-    return "—";
-  };
-
-  const filtered = products.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = products.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
 
   if (showForm) {
     return (
@@ -155,6 +130,7 @@ const AdminProducts = () => {
         </div>
 
         <form onSubmit={handleSave} className="max-w-2xl space-y-8">
+          {/* General */}
           <div className="border border-border p-6 space-y-4">
             <h3 className="editorial-heading text-[10px] mb-4">General</h3>
             <div>
@@ -195,21 +171,38 @@ const AdminProducts = () => {
             </div>
           </div>
 
+          {/* Media */}
+          <div className="border border-border p-6 space-y-4">
+            <h3 className="editorial-heading text-[10px] mb-4">Media</h3>
+            <div className="grid grid-cols-4 gap-3">
+              {productImages.map((url, i) => (
+                <ImageUpload key={i} bucket="product-images" currentUrl={url}
+                  onUpload={(newUrl) => {
+                    const imgs = [...productImages];
+                    if (newUrl) { imgs[i] = newUrl; } else { imgs.splice(i, 1); }
+                    setProductImages(imgs);
+                  }} />
+              ))}
+              <ImageUpload bucket="product-images" onUpload={(url) => {
+                if (url) setProductImages([...productImages, url]);
+              }} />
+            </div>
+          </div>
+
+          {/* Inventory */}
           <div className="border border-border p-6 space-y-4">
             <h3 className="editorial-heading text-[10px] mb-4">Inventory</h3>
             {variants.map((v, i) => (
               <div key={i} className="flex gap-4 items-end">
                 <div className="flex-1">
                   <label className="text-[9px] tracking-widest uppercase text-muted-foreground block mb-1">Size</label>
-                  <input value={v.size} onChange={(e) => {
-                    const n = [...variants]; n[i].size = e.target.value; setVariants(n);
-                  }} className="w-full border border-border bg-transparent px-3 py-2 text-[11px] outline-none" />
+                  <input value={v.size} onChange={(e) => { const n = [...variants]; n[i].size = e.target.value; setVariants(n); }}
+                    className="w-full border border-border bg-transparent px-3 py-2 text-[11px] outline-none" />
                 </div>
                 <div className="w-24">
                   <label className="text-[9px] tracking-widest uppercase text-muted-foreground block mb-1">Qty</label>
-                  <input type="number" min="0" value={v.quantity} onChange={(e) => {
-                    const n = [...variants]; n[i].quantity = e.target.value; setVariants(n);
-                  }} className="w-full border border-border bg-transparent px-3 py-2 text-[11px] outline-none" />
+                  <input type="number" min="0" value={v.quantity} onChange={(e) => { const n = [...variants]; n[i].quantity = e.target.value; setVariants(n); }}
+                    className="w-full border border-border bg-transparent px-3 py-2 text-[11px] outline-none" />
                 </div>
                 {variants.length > 1 && (
                   <button type="button" onClick={() => setVariants(variants.filter((_, j) => j !== i))}
@@ -223,6 +216,7 @@ const AdminProducts = () => {
             </button>
           </div>
 
+          {/* Details */}
           <div className="border border-border p-6 space-y-4">
             <h3 className="editorial-heading text-[10px] mb-4">Details</h3>
             <div className="grid grid-cols-2 gap-4">
