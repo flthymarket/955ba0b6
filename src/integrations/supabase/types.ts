@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      announcements: {
+        Row: {
+          background_style: string | null
+          banner_text: string
+          banner_type: string | null
+          created_at: string | null
+          enabled: boolean | null
+          end_date: string | null
+          id: string
+          link_url: string | null
+          priority: number | null
+          show_countdown: boolean | null
+          start_date: string | null
+          subtext: string | null
+          text_alignment: string | null
+        }
+        Insert: {
+          background_style?: string | null
+          banner_text?: string
+          banner_type?: string | null
+          created_at?: string | null
+          enabled?: boolean | null
+          end_date?: string | null
+          id?: string
+          link_url?: string | null
+          priority?: number | null
+          show_countdown?: boolean | null
+          start_date?: string | null
+          subtext?: string | null
+          text_alignment?: string | null
+        }
+        Update: {
+          background_style?: string | null
+          banner_text?: string
+          banner_type?: string | null
+          created_at?: string | null
+          enabled?: boolean | null
+          end_date?: string | null
+          id?: string
+          link_url?: string | null
+          priority?: number | null
+          show_countdown?: boolean | null
+          start_date?: string | null
+          subtext?: string | null
+          text_alignment?: string | null
+        }
+        Relationships: []
+      }
       brands: {
         Row: {
           created_at: string | null
@@ -104,6 +152,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      flash_sales: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          discount_percentage: number | null
+          enabled: boolean | null
+          end_date: string | null
+          id: string
+          scope: string | null
+          stacking_enabled: boolean | null
+          start_date: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          discount_percentage?: number | null
+          enabled?: boolean | null
+          end_date?: string | null
+          id?: string
+          scope?: string | null
+          stacking_enabled?: boolean | null
+          start_date?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          discount_percentage?: number | null
+          enabled?: boolean | null
+          end_date?: string | null
+          id?: string
+          scope?: string | null
+          stacking_enabled?: boolean | null
+          start_date?: string | null
+        }
+        Relationships: []
       }
       newsletter_subscribers: {
         Row: {
@@ -333,8 +417,14 @@ export type Database = {
           condition_description: string | null
           created_at: string | null
           description: string | null
+          discount_enabled: boolean | null
+          discount_end: string | null
+          discount_start: string | null
+          discount_type: string | null
+          discount_value: number | null
           featured: boolean | null
           id: string
+          is_flash_sale: boolean | null
           material: string | null
           measurements: Json | null
           name: string
@@ -350,8 +440,14 @@ export type Database = {
           condition_description?: string | null
           created_at?: string | null
           description?: string | null
+          discount_enabled?: boolean | null
+          discount_end?: string | null
+          discount_start?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
           featured?: boolean | null
           id?: string
+          is_flash_sale?: boolean | null
           material?: string | null
           measurements?: Json | null
           name: string
@@ -367,8 +463,14 @@ export type Database = {
           condition_description?: string | null
           created_at?: string | null
           description?: string | null
+          discount_enabled?: boolean | null
+          discount_end?: string | null
+          discount_start?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
           featured?: boolean | null
           id?: string
+          is_flash_sale?: boolean | null
           material?: string | null
           measurements?: Json | null
           name?: string
