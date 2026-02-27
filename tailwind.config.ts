@@ -83,12 +83,17 @@ export default {
           from: { transform: "translateX(100%)" },
           to: { transform: "translateX(0)" },
         },
+        "scale-in": {
+          from: { transform: "scale(1.08)", opacity: "0.8" },
+          to: { transform: "scale(1.05)", opacity: "1" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "fade-in": "fade-in 0.6s ease-out forwards",
         "slide-in-right": "slide-in-right 0.3s ease-out",
+        "scale-in": "scale-in 1.2s ease-out forwards",
       },
     },
   },
