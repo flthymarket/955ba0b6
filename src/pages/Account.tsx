@@ -33,8 +33,8 @@ const Account = () => {
   if (loading || !user) return null;
 
   return (
-    <main className="pt-40 pb-24">
-      <div className="max-w-[800px] mx-auto px-6">
+    <main className="pt-40 pb-24 animate-fade-in">
+      <div className="max-w-[680px] mx-auto px-6">
         <div className="flex items-center justify-between mb-12">
           <h1 className="text-lg tracking-[0.3em] font-extralight uppercase">My Account</h1>
           <button onClick={handleSignOut} className="nav-link text-[9px] text-muted-foreground">
@@ -43,23 +43,23 @@ const Account = () => {
         </div>
 
         {isAdmin && (
-          <Link to="/admin" className="block mb-8 border border-border p-4 text-center editorial-heading text-[10px] hover:bg-foreground hover:text-background transition-all duration-300">
+          <Link to="/admin" className="block mb-10 border border-border p-4 text-center editorial-heading text-[10px] hover:bg-foreground hover:text-background transition-all duration-300">
             Admin Dashboard →
           </Link>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+        <div className="space-y-12">
           {/* Profile */}
           <div>
             <h2 className="editorial-heading text-[10px] mb-6 border-b border-border pb-3">Profile</h2>
-            <div className="space-y-3 text-[11px] font-light">
-              <div className="flex justify-between">
+            <div className="space-y-4 text-[11px] font-light">
+              <div className="flex justify-between items-center">
                 <span className="text-muted-foreground tracking-wide">Name</span>
-                <span>{profile.name || "—"}</span>
+                <span className="text-right">{profile.name || "—"}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <span className="text-muted-foreground tracking-wide">Email</span>
-                <span>{profile.email || user.email}</span>
+                <span className="text-right break-all">{profile.email || user.email}</span>
               </div>
             </div>
           </div>
@@ -72,9 +72,9 @@ const Account = () => {
             ) : (
               <div className="space-y-3">
                 {orders.map((o) => (
-                  <div key={o.id} className="flex justify-between text-[11px] font-light border-b border-border pb-2">
-                    <span className="text-muted-foreground">{new Date(o.created_at).toLocaleDateString()}</span>
-                    <span>${o.total}</span>
+                  <div key={o.id} className="flex items-center justify-between text-[11px] font-light border-b border-border pb-3 gap-4">
+                    <span className="text-muted-foreground whitespace-nowrap">{new Date(o.created_at).toLocaleDateString()}</span>
+                    <span className="font-normal">${o.total}</span>
                     <span className="text-muted-foreground uppercase text-[9px] tracking-widest">{o.status}</span>
                   </div>
                 ))}

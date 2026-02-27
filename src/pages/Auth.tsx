@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { Check } from "lucide-react";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -48,7 +49,7 @@ const Auth = () => {
         if (error) throw error;
         toast({
           title: "Account created",
-          description: "Please check your email to verify your account.",
+          description: "Please check your email to verify your account before signing in.",
         });
       }
     } catch (error: any) {
@@ -61,50 +62,53 @@ const Auth = () => {
   const title = isForgotPassword ? "Reset Password" : isLogin ? "Sign In" : "Create Account";
 
   return (
-    <main className="pt-40 pb-24">
+    <main className="pt-40 pb-24 animate-fade-in">
       <div className="max-w-md mx-auto px-6">
         <h1 className="text-lg tracking-[0.3em] font-extralight uppercase text-center mb-12">{title}</h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {!isLogin && !isForgotPassword && (
-            <div>
+            <div className="animate-fade-in">
               <label className="editorial-heading text-[9px] block mb-2">Name</label>
               <input type="text" value={name} onChange={(e) => setName(e.target.value)}
-                className="w-full border-b border-foreground bg-transparent py-2 text-[11px] tracking-widest outline-none placeholder:text-muted-foreground"
+                className="w-full border-b border-foreground bg-transparent py-2 text-[11px] tracking-widest outline-none placeholder:text-muted-foreground focus:border-foreground/50 transition-colors"
                 placeholder="FULL NAME" required />
             </div>
           )}
           <div>
             <label className="editorial-heading text-[9px] block mb-2">Email</label>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-              className="w-full border-b border-foreground bg-transparent py-2 text-[11px] tracking-widest outline-none placeholder:text-muted-foreground"
+              className="w-full border-b border-foreground bg-transparent py-2 text-[11px] tracking-widest outline-none placeholder:text-muted-foreground focus:border-foreground/50 transition-colors"
               placeholder="EMAIL ADDRESS" required />
           </div>
           {!isForgotPassword && (
             <div>
               <label className="editorial-heading text-[9px] block mb-2">Password</label>
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                className="w-full border-b border-foreground bg-transparent py-2 text-[11px] tracking-widest outline-none placeholder:text-muted-foreground"
+                className="w-full border-b border-foreground bg-transparent py-2 text-[11px] tracking-widest outline-none placeholder:text-muted-foreground focus:border-foreground/50 transition-colors"
                 placeholder="PASSWORD" required minLength={6} />
             </div>
           )}
 
           {isLogin && !isForgotPassword && (
             <div className="flex items-center justify-between">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-3.5 h-3.5 appearance-none border border-foreground checked:bg-foreground cursor-pointer" />
-                <span className="text-[9px] tracking-widest uppercase text-muted-foreground">Remember me</span>
+              <label className="flex items-center gap-3 cursor-pointer group" onClick={() => setRememberMe(!rememberMe)}>
+                <div className={`w-4 h-4 border flex items-center justify-center transition-all duration-150 ${
+                  rememberMe ? "bg-foreground border-foreground" : "border-foreground/60 group-hover:border-foreground"
+                }`}>
+                  {rememberMe && <Check className="w-3 h-3 text-background" />}
+                </div>
+                <span className="text-[9px] tracking-widest uppercase text-muted-foreground select-none">Remember me</span>
               </label>
               <button type="button" onClick={() => setIsForgotPassword(true)}
-                className="text-[9px] tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors">
+                className="text-[9px] tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors duration-150">
                 Forgot password?
               </button>
             </div>
           )}
 
           <button type="submit" disabled={loading}
-            className="w-full bg-primary text-primary-foreground py-4 editorial-heading text-[11px] hover:opacity-80 transition-opacity min-h-[48px] disabled:opacity-50">
+            className="w-full bg-primary text-primary-foreground py-4 editorial-heading text-[11px] hover:opacity-80 transition-opacity duration-150 min-h-[48px] disabled:opacity-50">
             {loading ? "..." : isForgotPassword ? "Send Reset Link" : isLogin ? "Sign In" : "Create Account"}
           </button>
         </form>

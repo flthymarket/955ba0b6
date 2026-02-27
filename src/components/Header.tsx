@@ -5,12 +5,12 @@ import logo from "@/assets/logo.png";
 import { useAuth } from "@/hooks/useAuth";
 import SearchOverlay from "./SearchOverlay";
 import CartDrawer, { useCart } from "./CartDrawer";
+import AnnouncementBanner from "./AnnouncementBanner";
 
 const navLinks = [
   { label: "New Arrivals", href: "/collection?filter=new" },
   { label: "Brands", href: "/brands" },
   { label: "All", href: "/collection" },
-  { label: "Footwear", href: "/collection?filter=footwear" },
   { label: "Accessories", href: "/collection?filter=accessories" },
   { label: "Stories", href: "/stories" },
 ];
@@ -40,6 +40,7 @@ const Header = () => {
 
   return (
     <>
+      <AnnouncementBanner />
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
           scrolled ? "bg-background/95 backdrop-blur-sm border-b border-border" : "bg-background"
@@ -56,7 +57,7 @@ const Header = () => {
                   Help <ChevronDown className="w-3 h-3" />
                 </button>
                 {helpOpen && (
-                  <div className="absolute right-0 top-full mt-2 bg-background border border-border py-3 px-6 min-w-[200px] z-50">
+                  <div className="absolute right-0 top-full mt-2 bg-background border border-border py-3 px-6 min-w-[200px] z-50 animate-fade-in">
                     {helpLinks.map((link) => (
                       <Link key={link.label} to={link.href}
                         className="block py-2 nav-link text-[9px]" onClick={() => setHelpOpen(false)}>
@@ -82,17 +83,19 @@ const Header = () => {
             </Link>
 
             <div className="flex items-center gap-5 absolute right-0">
-              <button onClick={() => setSearchOpen(true)} className="transition-opacity duration-300 hover:opacity-50">
+              <button onClick={() => setSearchOpen(true)} className="transition-opacity duration-150 hover:opacity-50">
                 <Search className="w-4 h-4" />
               </button>
-              <Link to={user ? "/account" : "/auth"} className="transition-opacity duration-300 hover:opacity-50">
+              <Link to={user ? "/account" : "/auth"} className="transition-opacity duration-150 hover:opacity-50">
                 <User className="w-4 h-4" />
               </Link>
-              <button onClick={() => setCartOpen(true)} className="transition-opacity duration-300 hover:opacity-50 relative">
+              <button onClick={() => setCartOpen(true)} className="transition-opacity duration-150 hover:opacity-50 relative">
                 <ShoppingBag className="w-4 h-4" />
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-foreground text-background text-[7px] flex items-center justify-center">
-                  {cartCount}
-                </span>
+                {cartCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-foreground text-background text-[7px] flex items-center justify-center rounded-full">
+                    {cartCount}
+                  </span>
+                )}
               </button>
             </div>
           </div>
@@ -107,7 +110,7 @@ const Header = () => {
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-40 bg-background pt-36 px-6">
+        <div className="fixed inset-0 z-40 bg-background pt-36 px-6 animate-fade-in">
           <nav className="flex flex-col gap-6">
             {navLinks.map((link) => (
               <Link key={link.label} to={link.href} className="nav-link text-sm" onClick={() => setMobileMenuOpen(false)}>

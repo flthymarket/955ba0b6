@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "./AdminLayout";
 import ImageUpload from "@/components/ImageUpload";
-import { Plus, Pencil, Trash2, Search, GripVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Product {
@@ -26,6 +26,8 @@ const AdminProducts = () => {
     name: "", brand_id: "", category: "All", price: "", sku: "",
     description: "", condition: "Good", color: "", material: "",
     featured: false, condition_description: "",
+    discount_enabled: false, discount_type: "percentage", discount_value: "",
+    discount_start: "", discount_end: "", is_flash_sale: false,
   });
   const [variants, setVariants] = useState<{ size: string; quantity: string }[]>([{ size: "", quantity: "1" }]);
   const [brands, setBrands] = useState<{ id: string; name: string }[]>([]);
@@ -57,11 +59,16 @@ const AdminProducts = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const productData = {
+    const productData: any = {
       name: form.name, brand_id: form.brand_id || null, category: form.category,
       price: parseFloat(form.price), sku: form.sku || null, description: form.description || null,
       condition: form.condition, condition_description: form.condition_description || null,
       color: form.color || null, material: form.material || null, featured: form.featured,
+      discount_enabled: form.discount_enabled, discount_type: form.discount_type,
+      discount_value: form.discount_value ? parseFloat(form.discount_value) : 0,
+      discount_start: form.discount_start ? new Date(form.discount_start).toISOString() : null,
+      discount_end: form.discount_end ? new Date(form.discount_end).toISOString() : null,
+      is_flash_sale: form.is_flash_sale,
     };
 
     let productId = editing;
@@ -101,16 +108,21 @@ const AdminProducts = () => {
         price: String(product.price), sku: product.sku || "", description: product.description || "",
         condition: product.condition || "Good", condition_description: product.condition_description || "",
         color: product.color || "", material: product.material || "", featured: product.featured || false,
+        discount_enabled: product.discount_enabled || false, discount_type: product.discount_type || "percentage",
+        discount_value: product.discount_value ? String(product.discount_value) : "",
+        discount_start: product.discount_start ? new Date(product.discount_start).toISOString().slice(0, 16) : "",
+        discount_end: product.discount_end ? new Date(product.discount_end).toISOString().slice(0, 16) : "",
+        is_flash_sale: product.is_flash_sale || false,
       });
-      setVariants(pvariants?.length ? pvariants.map((v) => ({ size: v.size, quantity: String(v.quantity) })) : [{ size: "", quantity: "1" }]);
-      setProductImages(imgs?.map((i) => i.url) || []);
+      setVariants(pvariants?.length ? pvariants.map((v: any) => ({ size: v.size, quantity: String(v.quantity) })) : [{ size: "", quantity: "1" }]);
+      setProductImages(imgs?.map((i: any) => i.url) || []);
       setEditing(id);
       setShowForm(true);
     }
   };
 
   const resetForm = () => {
-    setForm({ name: "", brand_id: "", category: "All", price: "", sku: "", description: "", condition: "Good", color: "", material: "", featured: false, condition_description: "" });
+    setForm({ name: "", brand_id: "", category: "All", price: "", sku: "", description: "", condition: "Good", color: "", material: "", featured: false, condition_description: "", discount_enabled: false, discount_type: "percentage", discount_value: "", discount_start: "", discount_end: "", is_flash_sale: false });
     setVariants([{ size: "", quantity: "1" }]);
     setProductImages([]);
     setEditing(null);
@@ -118,6 +130,11 @@ const AdminProducts = () => {
   };
 
   const filtered = products.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
+
+  const inputCls = "w-full border border-border bg-transparent px-3 py-2.5 text-[11px] outline-none focus:border-foreground transition-colors duration-150";
+  const labelCls = "text-[9px] tracking-widest uppercase text-muted-foreground block mb-1";
+  const toggleCls = (on: boolean) => `relative w-10 h-5 rounded-full transition-colors duration-150 cursor-pointer ${on ? "bg-[hsl(352,82%,38%)]" : "bg-border"}`;
+  const knobCls = (on: boolean) => `absolute top-0.5 w-4 h-4 rounded-full bg-background transition-transform duration-150 ${on ? "translate-x-5" : "translate-x-0.5"}`;
 
   if (showForm) {
     return (
@@ -134,41 +151,89 @@ const AdminProducts = () => {
           <div className="border border-border p-6 space-y-4">
             <h3 className="editorial-heading text-[10px] mb-4">General</h3>
             <div>
-              <label className="text-[9px] tracking-widest uppercase text-muted-foreground block mb-1">Product Name *</label>
-              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required
-                className="w-full border border-border bg-transparent px-3 py-2 text-[11px] outline-none focus:border-foreground" />
+              <label className={labelCls}>Product Name *</label>
+              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className={inputCls} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-[9px] tracking-widest uppercase text-muted-foreground block mb-1">Brand</label>
-                <select value={form.brand_id} onChange={(e) => setForm({ ...form, brand_id: e.target.value })}
-                  className="w-full border border-border bg-transparent px-3 py-2 text-[11px] outline-none">
+                <label className={labelCls}>Brand</label>
+                <select value={form.brand_id} onChange={(e) => setForm({ ...form, brand_id: e.target.value })} className={inputCls}>
                   <option value="">Select brand</option>
                   {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-[9px] tracking-widest uppercase text-muted-foreground block mb-1">Category</label>
-                <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}
-                  className="w-full border border-border bg-transparent px-3 py-2 text-[11px] outline-none">
+                <label className={labelCls}>Category</label>
+                <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className={inputCls}>
                   <option value="All">All</option>
                   <option value="Accessories">Accessories</option>
-                  <option value="Footwear">Footwear</option>
                 </select>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-[9px] tracking-widest uppercase text-muted-foreground block mb-1">Price *</label>
-                <input type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required
-                  className="w-full border border-border bg-transparent px-3 py-2 text-[11px] outline-none" />
+                <label className={labelCls}>Price *</label>
+                <input type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required className={inputCls} />
               </div>
               <div>
-                <label className="text-[9px] tracking-widest uppercase text-muted-foreground block mb-1">SKU</label>
-                <input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })}
-                  className="w-full border border-border bg-transparent px-3 py-2 text-[11px] outline-none" />
+                <label className={labelCls}>SKU</label>
+                <input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} className={inputCls} />
               </div>
             </div>
+          </div>
+
+          {/* Pricing & Discount */}
+          <div className={`border p-6 space-y-4 transition-all duration-150 ${form.discount_enabled ? "border-l-2 border-l-[hsl(352,82%,38%)] border-border" : "border-border"}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <h3 className="editorial-heading text-[10px]">Discount Settings</h3>
+                {form.discount_enabled && form.is_flash_sale && (
+                  <span className="text-[10px] tracking-[0.1em] uppercase font-light px-2 py-0.5 border border-[hsl(352,82%,38%)] text-[hsl(352,82%,38%)] rounded-full">Flash Active</span>
+                )}
+              </div>
+              <button type="button" onClick={() => setForm({ ...form, discount_enabled: !form.discount_enabled })} className={toggleCls(form.discount_enabled)}>
+                <div className={knobCls(form.discount_enabled)} />
+              </button>
+            </div>
+
+            {form.discount_enabled && (
+              <div className="space-y-4 animate-fade-in">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelCls}>Discount Type</label>
+                    <select value={form.discount_type} onChange={(e) => setForm({ ...form, discount_type: e.target.value })} className={inputCls}>
+                      <option value="percentage">Percentage</option>
+                      <option value="fixed">Fixed Amount</option>
+                      <option value="override">Override Price</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelCls}>Discount Value</label>
+                    <input type="number" step="0.01" min="0" value={form.discount_value}
+                      onChange={(e) => setForm({ ...form, discount_value: e.target.value })} className={inputCls}
+                      placeholder={form.discount_type === "percentage" ? "25" : "50.00"} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelCls}>Start Date</label>
+                    <input type="datetime-local" value={form.discount_start}
+                      onChange={(e) => setForm({ ...form, discount_start: e.target.value })} className={inputCls} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>End Date</label>
+                    <input type="datetime-local" value={form.discount_end}
+                      onChange={(e) => setForm({ ...form, discount_end: e.target.value })} className={inputCls} />
+                  </div>
+                </div>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <button type="button" onClick={() => setForm({ ...form, is_flash_sale: !form.is_flash_sale })} className={toggleCls(form.is_flash_sale)}>
+                    <div className={knobCls(form.is_flash_sale)} />
+                  </button>
+                  <span className="text-[10px] tracking-widest uppercase">Flash Sale</span>
+                </label>
+              </div>
+            )}
           </div>
 
           {/* Media */}
@@ -195,14 +260,12 @@ const AdminProducts = () => {
             {variants.map((v, i) => (
               <div key={i} className="flex gap-4 items-end">
                 <div className="flex-1">
-                  <label className="text-[9px] tracking-widest uppercase text-muted-foreground block mb-1">Size</label>
-                  <input value={v.size} onChange={(e) => { const n = [...variants]; n[i].size = e.target.value; setVariants(n); }}
-                    className="w-full border border-border bg-transparent px-3 py-2 text-[11px] outline-none" />
+                  <label className={labelCls}>Size</label>
+                  <input value={v.size} onChange={(e) => { const n = [...variants]; n[i].size = e.target.value; setVariants(n); }} className={inputCls} />
                 </div>
                 <div className="w-24">
-                  <label className="text-[9px] tracking-widest uppercase text-muted-foreground block mb-1">Qty</label>
-                  <input type="number" min="0" value={v.quantity} onChange={(e) => { const n = [...variants]; n[i].quantity = e.target.value; setVariants(n); }}
-                    className="w-full border border-border bg-transparent px-3 py-2 text-[11px] outline-none" />
+                  <label className={labelCls}>Qty</label>
+                  <input type="number" min="0" value={v.quantity} onChange={(e) => { const n = [...variants]; n[i].quantity = e.target.value; setVariants(n); }} className={inputCls} />
                 </div>
                 {variants.length > 1 && (
                   <button type="button" onClick={() => setVariants(variants.filter((_, j) => j !== i))}
@@ -221,45 +284,45 @@ const AdminProducts = () => {
             <h3 className="editorial-heading text-[10px] mb-4">Details</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-[9px] tracking-widest uppercase text-muted-foreground block mb-1">Color</label>
-                <input value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })}
-                  className="w-full border border-border bg-transparent px-3 py-2 text-[11px] outline-none" />
+                <label className={labelCls}>Color</label>
+                <input value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} className={inputCls} />
               </div>
               <div>
-                <label className="text-[9px] tracking-widest uppercase text-muted-foreground block mb-1">Material</label>
-                <input value={form.material} onChange={(e) => setForm({ ...form, material: e.target.value })}
-                  className="w-full border border-border bg-transparent px-3 py-2 text-[11px] outline-none" />
+                <label className={labelCls}>Material</label>
+                <input value={form.material} onChange={(e) => setForm({ ...form, material: e.target.value })} className={inputCls} />
               </div>
             </div>
             <div>
-              <label className="text-[9px] tracking-widest uppercase text-muted-foreground block mb-1">Condition</label>
-              <select value={form.condition} onChange={(e) => setForm({ ...form, condition: e.target.value })}
-                className="w-full border border-border bg-transparent px-3 py-2 text-[11px] outline-none">
+              <label className={labelCls}>Condition</label>
+              <select value={form.condition} onChange={(e) => setForm({ ...form, condition: e.target.value })} className={inputCls}>
                 {["Fair", "Good", "Great", "Excellent", "Pristine"].map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-[9px] tracking-widest uppercase text-muted-foreground block mb-1">Condition Description</label>
-              <input value={form.condition_description} onChange={(e) => setForm({ ...form, condition_description: e.target.value })}
-                className="w-full border border-border bg-transparent px-3 py-2 text-[11px] outline-none" />
+              <label className={labelCls}>Condition Description</label>
+              <input value={form.condition_description} onChange={(e) => setForm({ ...form, condition_description: e.target.value })} className={inputCls} />
             </div>
             <div>
-              <label className="text-[9px] tracking-widest uppercase text-muted-foreground block mb-1">Description</label>
+              <label className={labelCls}>Description</label>
               <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
-                className="w-full border border-border bg-transparent px-3 py-2 text-[11px] outline-none min-h-[100px] resize-none" />
+                className={`${inputCls} min-h-[100px] resize-none`} />
             </div>
             <label className="flex items-center gap-3 cursor-pointer">
-              <input type="checkbox" checked={form.featured} onChange={(e) => setForm({ ...form, featured: e.target.checked })}
-                className="w-4 h-4 appearance-none border border-foreground checked:bg-foreground cursor-pointer" />
+              <div className={`w-4 h-4 border flex items-center justify-center transition-all duration-150 ${
+                form.featured ? "bg-foreground border-foreground" : "border-foreground"
+              }`} onClick={() => setForm({ ...form, featured: !form.featured })}>
+                {form.featured && <Check className="w-3 h-3 text-background" />}
+              </div>
               <span className="text-[10px] tracking-widest uppercase">Featured Product</span>
             </label>
           </div>
 
-          <div className="flex gap-4">
-            <button type="submit" className="bg-primary text-primary-foreground px-8 py-3 editorial-heading text-[11px] hover:opacity-80 transition-opacity min-h-[48px]">
+          {/* Mobile sticky save bar */}
+          <div className="flex gap-4 lg:static fixed bottom-0 left-0 right-0 bg-background border-t border-border lg:border-0 p-4 lg:p-0 z-30">
+            <button type="submit" className="flex-1 lg:flex-none bg-primary text-primary-foreground px-8 py-3 editorial-heading text-[11px] hover:opacity-80 transition-opacity duration-150 min-h-[48px]">
               {editing ? "Update Product" : "Create Product"}
             </button>
-            <button type="button" onClick={resetForm} className="border border-border px-8 py-3 editorial-heading text-[11px] hover:border-foreground transition-all min-h-[48px]">
+            <button type="button" onClick={resetForm} className="flex-1 lg:flex-none border border-border px-8 py-3 editorial-heading text-[11px] hover:border-foreground transition-all duration-150 min-h-[48px]">
               Cancel
             </button>
           </div>
@@ -273,7 +336,7 @@ const AdminProducts = () => {
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-[14px] tracking-[0.3em] uppercase font-extralight">Products</h1>
         <button onClick={() => setShowForm(true)}
-          className="bg-primary text-primary-foreground px-6 py-2 editorial-heading text-[10px] flex items-center gap-2 hover:opacity-80 min-h-[40px]">
+          className="bg-primary text-primary-foreground px-6 py-2 editorial-heading text-[10px] flex items-center gap-2 hover:opacity-80 transition-opacity duration-150 min-h-[40px]">
           <Plus className="w-3 h-3" /> Add Product
         </button>
       </div>
@@ -284,29 +347,32 @@ const AdminProducts = () => {
           className="bg-transparent outline-none text-[11px] tracking-widest flex-1 placeholder:text-muted-foreground" />
       </div>
 
-      <div className="border border-border">
-        <div className="grid grid-cols-[1fr_1fr_100px_100px_100px] gap-4 px-6 py-3 border-b border-border bg-muted">
-          <span className="text-[9px] tracking-widest uppercase text-muted-foreground">Name</span>
-          <span className="text-[9px] tracking-widest uppercase text-muted-foreground">Brand</span>
-          <span className="text-[9px] tracking-widest uppercase text-muted-foreground">Category</span>
-          <span className="text-[9px] tracking-widest uppercase text-muted-foreground">Price</span>
-          <span className="text-[9px] tracking-widest uppercase text-muted-foreground">Actions</span>
-        </div>
-        {filtered.map((p) => (
-          <div key={p.id} className="grid grid-cols-[1fr_1fr_100px_100px_100px] gap-4 px-6 py-4 border-b border-border last:border-b-0 items-center">
-            <span className="text-[11px] font-light">{p.name}</span>
-            <span className="text-[11px] font-light text-muted-foreground">{(p.brands as any)?.name || "—"}</span>
-            <span className="text-[10px] font-light text-muted-foreground">{p.category}</span>
-            <span className="text-[11px] font-light">${p.price.toLocaleString()}</span>
-            <div className="flex gap-3">
-              <button onClick={() => startEdit(p.id)} className="text-muted-foreground hover:text-foreground"><Pencil className="w-3 h-3" /></button>
-              <button onClick={() => handleDelete(p.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-3 h-3" /></button>
-            </div>
+      {/* Responsive table */}
+      <div className="border border-border overflow-x-auto">
+        <div className="min-w-[600px]">
+          <div className="grid grid-cols-[1fr_1fr_100px_100px_100px] gap-4 px-6 py-3 border-b border-border bg-muted">
+            <span className="text-[9px] tracking-widest uppercase text-muted-foreground">Name</span>
+            <span className="text-[9px] tracking-widest uppercase text-muted-foreground">Brand</span>
+            <span className="text-[9px] tracking-widest uppercase text-muted-foreground">Category</span>
+            <span className="text-[9px] tracking-widest uppercase text-muted-foreground">Price</span>
+            <span className="text-[9px] tracking-widest uppercase text-muted-foreground">Actions</span>
           </div>
-        ))}
-        {filtered.length === 0 && (
-          <p className="px-6 py-8 text-center text-muted-foreground text-xs tracking-widest uppercase">No products</p>
-        )}
+          {filtered.map((p) => (
+            <div key={p.id} className="grid grid-cols-[1fr_1fr_100px_100px_100px] gap-4 px-6 py-4 border-b border-border last:border-b-0 items-center hover:bg-muted/50 transition-colors duration-150">
+              <span className="text-[11px] font-light">{p.name}</span>
+              <span className="text-[11px] font-light text-muted-foreground">{(p.brands as any)?.name || "—"}</span>
+              <span className="text-[10px] font-light text-muted-foreground">{p.category}</span>
+              <span className="text-[11px] font-light">${p.price.toLocaleString()}</span>
+              <div className="flex gap-3">
+                <button onClick={() => startEdit(p.id)} className="text-muted-foreground hover:text-foreground transition-colors duration-150"><Pencil className="w-3 h-3" /></button>
+                <button onClick={() => handleDelete(p.id)} className="text-muted-foreground hover:text-destructive transition-colors duration-150"><Trash2 className="w-3 h-3" /></button>
+              </div>
+            </div>
+          ))}
+          {filtered.length === 0 && (
+            <p className="px-6 py-8 text-center text-muted-foreground text-xs tracking-widest uppercase">No products</p>
+          )}
+        </div>
       </div>
     </AdminLayout>
   );
