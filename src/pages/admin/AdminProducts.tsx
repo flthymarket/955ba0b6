@@ -5,6 +5,9 @@ import ImageUpload from "@/components/ImageUpload";
 import { Plus, Pencil, Trash2, Search, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+const allCategories = ["All", "Tops", "Bottoms", "Outerwear", "Accessories", "Bags", "Jewelry", "Dresses"];
+const conditionLevels = ["Fair", "Good", "Great", "Excellent", "Pristine"];
+
 interface Product {
   id: string;
   name: string;
@@ -139,22 +142,22 @@ const AdminProducts = () => {
   if (showForm) {
     return (
       <AdminLayout>
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-[14px] tracking-[0.3em] uppercase font-extralight">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-[13px] tracking-[0.3em] uppercase font-extralight">
             {editing ? "Edit Product" : "Add Product"}
           </h1>
           <button onClick={resetForm} className="nav-link text-[9px] text-muted-foreground">← Back</button>
         </div>
 
-        <form onSubmit={handleSave} className="max-w-2xl space-y-8">
+        <form onSubmit={handleSave} className="max-w-2xl space-y-6">
           {/* General */}
-          <div className="border border-border p-6 space-y-4">
-            <h3 className="editorial-heading text-[10px] mb-4">General</h3>
+          <div className="border border-border p-5 space-y-3">
+            <h3 className="editorial-heading text-[10px] mb-3">General</h3>
             <div>
               <label className={labelCls}>Product Name *</label>
               <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className={inputCls} />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={labelCls}>Brand</label>
                 <select value={form.brand_id} onChange={(e) => setForm({ ...form, brand_id: e.target.value })} className={inputCls}>
@@ -165,12 +168,11 @@ const AdminProducts = () => {
               <div>
                 <label className={labelCls}>Category</label>
                 <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className={inputCls}>
-                  <option value="All">All</option>
-                  <option value="Accessories">Accessories</option>
+                  {allCategories.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={labelCls}>Price *</label>
                 <input type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required className={inputCls} />
@@ -183,22 +185,21 @@ const AdminProducts = () => {
           </div>
 
           {/* Pricing & Discount */}
-          <div className={`border p-6 space-y-4 transition-all duration-150 ${form.discount_enabled ? "border-l-2 border-l-[hsl(352,82%,38%)] border-border" : "border-border"}`}>
+          <div className={`border p-5 space-y-3 transition-all duration-150 ${form.discount_enabled ? "border-l-2 border-l-[hsl(352,82%,38%)] border-border" : "border-border"}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <h3 className="editorial-heading text-[10px]">Discount Settings</h3>
                 {form.discount_enabled && form.is_flash_sale && (
-                  <span className="text-[10px] tracking-[0.1em] uppercase font-light px-2 py-0.5 border border-[hsl(352,82%,38%)] text-[hsl(352,82%,38%)] rounded-full">Flash Active</span>
+                  <span className="text-[9px] tracking-[0.1em] uppercase font-light px-2 py-0.5 border border-[hsl(352,82%,38%)] text-[hsl(352,82%,38%)] rounded-full">Flash Active</span>
                 )}
               </div>
               <button type="button" onClick={() => setForm({ ...form, discount_enabled: !form.discount_enabled })} className={toggleCls(form.discount_enabled)}>
                 <div className={knobCls(form.discount_enabled)} />
               </button>
             </div>
-
             {form.discount_enabled && (
-              <div className="space-y-4 animate-fade-in">
-                <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-3 animate-fade-in">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className={labelCls}>Discount Type</label>
                     <select value={form.discount_type} onChange={(e) => setForm({ ...form, discount_type: e.target.value })} className={inputCls}>
@@ -214,16 +215,14 @@ const AdminProducts = () => {
                       placeholder={form.discount_type === "percentage" ? "25" : "50.00"} />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className={labelCls}>Start Date</label>
-                    <input type="datetime-local" value={form.discount_start}
-                      onChange={(e) => setForm({ ...form, discount_start: e.target.value })} className={inputCls} />
+                    <input type="datetime-local" value={form.discount_start} onChange={(e) => setForm({ ...form, discount_start: e.target.value })} className={inputCls} />
                   </div>
                   <div>
                     <label className={labelCls}>End Date</label>
-                    <input type="datetime-local" value={form.discount_end}
-                      onChange={(e) => setForm({ ...form, discount_end: e.target.value })} className={inputCls} />
+                    <input type="datetime-local" value={form.discount_end} onChange={(e) => setForm({ ...form, discount_end: e.target.value })} className={inputCls} />
                   </div>
                 </div>
                 <label className="flex items-center gap-3 cursor-pointer">
@@ -237,8 +236,8 @@ const AdminProducts = () => {
           </div>
 
           {/* Media */}
-          <div className="border border-border p-6 space-y-4">
-            <h3 className="editorial-heading text-[10px] mb-4">Media</h3>
+          <div className="border border-border p-5 space-y-3">
+            <h3 className="editorial-heading text-[10px] mb-3">Media</h3>
             <div className="grid grid-cols-4 gap-3">
               {productImages.map((url, i) => (
                 <ImageUpload key={i} bucket="product-images" currentUrl={url}
@@ -255,15 +254,15 @@ const AdminProducts = () => {
           </div>
 
           {/* Inventory */}
-          <div className="border border-border p-6 space-y-4">
-            <h3 className="editorial-heading text-[10px] mb-4">Inventory</h3>
+          <div className="border border-border p-5 space-y-3">
+            <h3 className="editorial-heading text-[10px] mb-3">Inventory</h3>
             {variants.map((v, i) => (
-              <div key={i} className="flex gap-4 items-end">
+              <div key={i} className="flex gap-3 items-end">
                 <div className="flex-1">
                   <label className={labelCls}>Size</label>
                   <input value={v.size} onChange={(e) => { const n = [...variants]; n[i].size = e.target.value; setVariants(n); }} className={inputCls} />
                 </div>
-                <div className="w-24">
+                <div className="w-20">
                   <label className={labelCls}>Qty</label>
                   <input type="number" min="0" value={v.quantity} onChange={(e) => { const n = [...variants]; n[i].quantity = e.target.value; setVariants(n); }} className={inputCls} />
                 </div>
@@ -280,9 +279,9 @@ const AdminProducts = () => {
           </div>
 
           {/* Details */}
-          <div className="border border-border p-6 space-y-4">
-            <h3 className="editorial-heading text-[10px] mb-4">Details</h3>
-            <div className="grid grid-cols-2 gap-4">
+          <div className="border border-border p-5 space-y-3">
+            <h3 className="editorial-heading text-[10px] mb-3">Details</h3>
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={labelCls}>Color</label>
                 <input value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} className={inputCls} />
@@ -295,17 +294,18 @@ const AdminProducts = () => {
             <div>
               <label className={labelCls}>Condition</label>
               <select value={form.condition} onChange={(e) => setForm({ ...form, condition: e.target.value })} className={inputCls}>
-                {["Fair", "Good", "Great", "Excellent", "Pristine"].map((c) => <option key={c} value={c}>{c}</option>)}
+                {conditionLevels.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div>
               <label className={labelCls}>Condition Description</label>
-              <input value={form.condition_description} onChange={(e) => setForm({ ...form, condition_description: e.target.value })} className={inputCls} />
+              <textarea value={form.condition_description} onChange={(e) => setForm({ ...form, condition_description: e.target.value })}
+                className={`${inputCls} min-h-[60px] resize-none`} placeholder="Describe specific wear, flaws, or highlights..." />
             </div>
             <div>
               <label className={labelCls}>Description</label>
               <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
-                className={`${inputCls} min-h-[100px] resize-none`} />
+                className={`${inputCls} min-h-[80px] resize-none`} />
             </div>
             <label className="flex items-center gap-3 cursor-pointer">
               <div className={`w-4 h-4 border flex items-center justify-center transition-all duration-150 ${
@@ -317,12 +317,12 @@ const AdminProducts = () => {
             </label>
           </div>
 
-          {/* Mobile sticky save bar */}
-          <div className="flex gap-4 lg:static fixed bottom-0 left-0 right-0 bg-background border-t border-border lg:border-0 p-4 lg:p-0 z-30">
-            <button type="submit" className="flex-1 lg:flex-none bg-primary text-primary-foreground px-8 py-3 editorial-heading text-[11px] hover:opacity-80 transition-opacity duration-150 min-h-[48px]">
+          {/* Save */}
+          <div className="flex gap-3 lg:static fixed bottom-0 left-0 right-0 bg-background border-t border-border lg:border-0 p-4 lg:p-0 z-30">
+            <button type="submit" className="flex-1 lg:flex-none bg-primary text-primary-foreground px-8 py-3 editorial-heading text-[10px] hover:opacity-80 transition-opacity duration-150 min-h-[44px]">
               {editing ? "Update Product" : "Create Product"}
             </button>
-            <button type="button" onClick={resetForm} className="flex-1 lg:flex-none border border-border px-8 py-3 editorial-heading text-[11px] hover:border-foreground transition-all duration-150 min-h-[48px]">
+            <button type="button" onClick={resetForm} className="flex-1 lg:flex-none border border-border px-8 py-3 editorial-heading text-[10px] hover:border-foreground transition-all duration-150 min-h-[44px]">
               Cancel
             </button>
           </div>
@@ -333,11 +333,11 @@ const AdminProducts = () => {
 
   return (
     <AdminLayout>
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-[14px] tracking-[0.3em] uppercase font-extralight">Products</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-[13px] tracking-[0.3em] uppercase font-extralight">Products</h1>
         <button onClick={() => setShowForm(true)}
-          className="bg-primary text-primary-foreground px-6 py-2 editorial-heading text-[10px] flex items-center gap-2 hover:opacity-80 transition-opacity duration-150 min-h-[40px]">
-          <Plus className="w-3 h-3" /> Add Product
+          className="bg-primary text-primary-foreground px-5 py-2 editorial-heading text-[9px] flex items-center gap-2 hover:opacity-80 transition-opacity duration-150 min-h-[36px]">
+          <Plus className="w-3 h-3" /> Add
         </button>
       </div>
 
@@ -347,10 +347,9 @@ const AdminProducts = () => {
           className="bg-transparent outline-none text-[11px] tracking-widest flex-1 placeholder:text-muted-foreground" />
       </div>
 
-      {/* Responsive table */}
       <div className="border border-border overflow-x-auto">
-        <div className="min-w-[600px]">
-          <div className="grid grid-cols-[1fr_1fr_100px_100px_100px] gap-4 px-6 py-3 border-b border-border bg-muted">
+        <div className="min-w-[500px]">
+          <div className="grid grid-cols-[1fr_1fr_80px_80px_80px] gap-3 px-4 py-2.5 border-b border-border bg-muted">
             <span className="text-[9px] tracking-widest uppercase text-muted-foreground">Name</span>
             <span className="text-[9px] tracking-widest uppercase text-muted-foreground">Brand</span>
             <span className="text-[9px] tracking-widest uppercase text-muted-foreground">Category</span>
@@ -358,10 +357,10 @@ const AdminProducts = () => {
             <span className="text-[9px] tracking-widest uppercase text-muted-foreground">Actions</span>
           </div>
           {filtered.map((p) => (
-            <div key={p.id} className="grid grid-cols-[1fr_1fr_100px_100px_100px] gap-4 px-6 py-4 border-b border-border last:border-b-0 items-center hover:bg-muted/50 transition-colors duration-150">
-              <span className="text-[11px] font-light">{p.name}</span>
-              <span className="text-[11px] font-light text-muted-foreground">{(p.brands as any)?.name || "—"}</span>
-              <span className="text-[10px] font-light text-muted-foreground">{p.category}</span>
+            <div key={p.id} className="grid grid-cols-[1fr_1fr_80px_80px_80px] gap-3 px-4 py-3 border-b border-border last:border-b-0 items-center hover:bg-muted/50 transition-colors duration-150">
+              <span className="text-[11px] font-light truncate">{p.name}</span>
+              <span className="text-[11px] font-light text-muted-foreground truncate">{(p.brands as any)?.name || "—"}</span>
+              <span className="text-[9px] font-light text-muted-foreground">{p.category}</span>
               <span className="text-[11px] font-light">${p.price.toLocaleString()}</span>
               <div className="flex gap-3">
                 <button onClick={() => startEdit(p.id)} className="text-muted-foreground hover:text-foreground transition-colors duration-150"><Pencil className="w-3 h-3" /></button>
@@ -370,7 +369,7 @@ const AdminProducts = () => {
             </div>
           ))}
           {filtered.length === 0 && (
-            <p className="px-6 py-8 text-center text-muted-foreground text-xs tracking-widest uppercase">No products</p>
+            <p className="px-4 py-8 text-center text-muted-foreground text-xs tracking-widest uppercase">No products</p>
           )}
         </div>
       </div>
