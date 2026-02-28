@@ -27,6 +27,9 @@ const Footer = () => {
             <nav className="flex flex-col gap-3">
               <Link to="/collection?filter=new" className="nav-link text-[9px] text-muted-foreground">New Arrivals</Link>
               <Link to="/collection" className="nav-link text-[9px] text-muted-foreground">All</Link>
+              <Link to="/collection?filter=tops" className="nav-link text-[9px] text-muted-foreground">Tops</Link>
+              <Link to="/collection?filter=bottoms" className="nav-link text-[9px] text-muted-foreground">Bottoms</Link>
+              <Link to="/collection?filter=outerwear" className="nav-link text-[9px] text-muted-foreground">Outerwear</Link>
               <Link to="/collection?filter=accessories" className="nav-link text-[9px] text-muted-foreground">Accessories</Link>
             </nav>
           </div>

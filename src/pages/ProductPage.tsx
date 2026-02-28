@@ -41,11 +41,16 @@ const ProductPage = () => {
   const [offerOpen, setOfferOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [flashTimeLeft, setFlashTimeLeft] = useState("");
+  const [viewEnhanced, setViewEnhanced] = useState(false);
+  const [enhancedUrl, setEnhancedUrl] = useState<string | null>(null);
+  const [enhancing, setEnhancing] = useState(false);
 
   useEffect(() => {
     if (!id) return;
-    const fetch = async () => {
+    const fetchData = async () => {
       setLoading(true);
+      setViewEnhanced(false);
+      setEnhancedUrl(null);
       const { data: p } = await supabase.from("products").select("*, brands(name)").eq("id", id).single();
 
       if (p) {
@@ -73,7 +78,7 @@ const ProductPage = () => {
       }
       setLoading(false);
     };
-    fetch();
+    fetchData();
   }, [id]);
 
   // Flash sale countdown
@@ -90,9 +95,27 @@ const ProductPage = () => {
     return () => clearInterval(interval);
   }, [product]);
 
+  const handleEnhance = async () => {
+    const imgUrl = images[currentImage]?.url;
+    if (!imgUrl || enhancing) return;
+    setEnhancing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("enhance-image", { body: { imageUrl: imgUrl } });
+      if (error) throw error;
+      if (data?.enhancedUrl) {
+        setEnhancedUrl(data.enhancedUrl);
+        setViewEnhanced(true);
+        toast({ title: "Image enhanced!" });
+      }
+    } catch (err: any) {
+      toast({ title: "Enhancement failed", description: err.message, variant: "destructive" });
+    }
+    setEnhancing(false);
+  };
+
   if (loading) {
     return (
-      <main className="pt-40 pb-24 text-center">
+      <main className="pt-32 pb-24 text-center">
         <p className="text-muted-foreground text-xs tracking-widest uppercase">Loading...</p>
       </main>
     );
@@ -100,7 +123,7 @@ const ProductPage = () => {
 
   if (!product) {
     return (
-      <main className="pt-40 pb-24 text-center">
+      <main className="pt-32 pb-24 text-center">
         <p className="editorial-heading">Product not found</p>
       </main>
     );
@@ -111,7 +134,7 @@ const ProductPage = () => {
   const conditionIndex = conditionLevels.indexOf(product.condition || "Good");
   const totalStock = variants.reduce((sum: number, v: any) => sum + v.quantity, 0);
   const isSoldOut = variants.length > 0 && totalStock === 0;
-  const mainImage = images[currentImage]?.url || "/placeholder.svg";
+  const mainImage = viewEnhanced && enhancedUrl ? enhancedUrl : (images[currentImage]?.url || "/placeholder.svg");
   const brandName = (product.brands as any)?.name || "";
 
   const discountActive = isDiscountActive(product.discount_enabled, product.discount_start, product.discount_end);
@@ -133,9 +156,9 @@ const ProductPage = () => {
   };
 
   return (
-    <main className="pt-36 lg:pt-44 pb-24 animate-fade-in">
-      <div className="max-w-[1400px] mx-auto px-6">
-        <nav className="mb-10">
+    <main className="pt-28 md:pt-32 pb-24 animate-fade-in">
+      <div className="max-w-[1400px] mx-auto px-4 md:px-6">
+        <nav className="mb-6 md:mb-10">
           <span className="text-[9px] tracking-widest text-muted-foreground font-light">
             <Link to="/" className="hover:opacity-50 transition-opacity duration-150">HOME</Link>{" / "}
             <Link to="/collection" className="hover:opacity-50 transition-opacity duration-150">COLLECTION</Link>{" / "}
@@ -143,15 +166,34 @@ const ProductPage = () => {
           </span>
         </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
           <div>
-            <div className="aspect-[3/4] bg-secondary overflow-hidden mb-4">
+            <div className="aspect-[3/4] bg-secondary overflow-hidden mb-3 relative group">
               <img src={mainImage} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 hover:scale-[1.02]" />
+              {/* Enhanced/Original toggle */}
+              {enhancedUrl && (
+                <div className="absolute top-3 left-3 flex gap-1 z-10">
+                  <button onClick={() => setViewEnhanced(false)}
+                    className={`text-[8px] tracking-[0.1em] uppercase px-2 py-1 transition-all ${!viewEnhanced ? "bg-foreground text-background" : "bg-background/80 text-foreground"}`}>
+                    Original
+                  </button>
+                  <button onClick={() => setViewEnhanced(true)}
+                    className={`text-[8px] tracking-[0.1em] uppercase px-2 py-1 transition-all ${viewEnhanced ? "bg-foreground text-background" : "bg-background/80 text-foreground"}`}>
+                    Enhanced
+                  </button>
+                </div>
+              )}
+              {!enhancedUrl && images.length > 0 && (
+                <button onClick={handleEnhance} disabled={enhancing}
+                  className="absolute bottom-3 left-3 text-[8px] tracking-[0.1em] uppercase px-3 py-1.5 bg-background/80 text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300 disabled:opacity-50">
+                  {enhancing ? "Enhancing..." : "✨ Enhance"}
+                </button>
+              )}
             </div>
             {images.length > 1 && (
               <div className="grid grid-cols-4 gap-2">
                 {images.map((img: any, i: number) => (
-                  <button key={i} onClick={() => setCurrentImage(i)}
+                  <button key={i} onClick={() => { setCurrentImage(i); setViewEnhanced(false); }}
                     className={`aspect-square overflow-hidden border transition-all duration-150 ${currentImage === i ? "border-foreground" : "border-border hover:border-foreground/50"}`}>
                     <img src={img.url} alt="" className="w-full h-full object-cover" />
                   </button>
@@ -160,35 +202,30 @@ const ProductPage = () => {
             )}
           </div>
 
-          <div className="lg:pt-4">
-            <p className="editorial-heading text-[9px] text-muted-foreground mb-2">{brandName}</p>
-            <h1 className="text-lg md:text-xl tracking-[0.15em] font-extralight mb-2">{product.name.toUpperCase()}</h1>
+          <div className="lg:pt-2">
+            <p className="editorial-heading text-[9px] text-muted-foreground mb-1">{brandName}</p>
+            <h1 className="text-[14px] md:text-lg tracking-[0.15em] font-extralight mb-2 uppercase">{product.name}</h1>
 
-            {/* Price with discount */}
-            <div className="mb-8">
+            {/* Price */}
+            <div className="mb-6">
               {discountActive && finalPrice < product.price ? (
                 <div className="space-y-1">
-                  <p className="text-[13px] tracking-[0.1em] font-light text-muted-foreground line-through">${product.price.toLocaleString()}</p>
+                  <p className="text-[12px] tracking-[0.1em] font-light text-muted-foreground line-through">${product.price.toLocaleString()}</p>
                   <div className="flex items-center gap-3">
-                    <p className="text-lg tracking-[0.1em] font-light">${finalPrice.toLocaleString()}</p>
+                    <p className="text-[16px] tracking-[0.1em] font-light">${finalPrice.toLocaleString()}</p>
                     {pct > 0 && (
-                      <span className="text-[12px] font-light text-[hsl(352,82%,38%)] border border-[hsl(352,82%,38%)] px-2 py-0.5 rounded-full">
-                        -{pct}%
-                      </span>
+                      <span className="text-[11px] font-light text-[hsl(352,82%,38%)] border border-[hsl(352,82%,38%)] px-2 py-0.5 rounded-full">-{pct}%</span>
                     )}
                   </div>
                 </div>
               ) : (
-                <p className="text-sm tracking-[0.1em] font-light">${product.price.toLocaleString()}</p>
+                <p className="text-[14px] tracking-[0.1em] font-light">${product.price.toLocaleString()}</p>
               )}
-
               {discountActive && product.is_flash_sale && (
-                <div className="mt-3">
-                  <p className="text-[10px] tracking-[0.15em] uppercase font-light text-[hsl(352,82%,38%)]">Flash Sale</p>
+                <div className="mt-2">
+                  <p className="text-[9px] tracking-[0.15em] uppercase font-light text-[hsl(352,82%,38%)]">Flash Sale</p>
                   {flashTimeLeft && (
-                    <p className="text-[12px] font-light mt-1">
-                      Ends in <span className="font-mono tabular-nums text-[hsl(352,82%,38%)]">{flashTimeLeft}</span>
-                    </p>
+                    <p className="text-[11px] font-light mt-1">Ends in <span className="font-mono tabular-nums text-[hsl(352,82%,38%)]">{flashTimeLeft}</span></p>
                   )}
                 </div>
               )}
@@ -196,39 +233,35 @@ const ProductPage = () => {
 
             {isSoldOut && (
               <div className="mb-6 border border-border p-3 text-center">
-                <span className="text-[11px] tracking-widest uppercase text-muted-foreground">Sold Out</span>
+                <span className="text-[10px] tracking-widest uppercase text-muted-foreground">Sold Out</span>
               </div>
             )}
 
             {variants.length > 0 && !isSoldOut && (
-              <div className="mb-6">
-                <p className="editorial-heading text-[9px] mb-3">Size</p>
+              <div className="mb-5">
+                <p className="editorial-heading text-[9px] mb-2">Size</p>
                 <div className="flex gap-2 flex-wrap">
                   {variants.map((v: any) => (
                     <button key={v.id} onClick={() => { setSelectedSize(v.size); setQuantity(1); }} disabled={v.quantity === 0}
-                      className={`min-w-[44px] h-10 border text-[10px] tracking-widest font-light transition-all duration-150 ${
+                      className={`min-w-[40px] h-9 border text-[10px] tracking-widest font-light transition-all duration-150 px-2 ${
                         selectedSize === v.size ? "bg-foreground text-background border-foreground"
                           : v.quantity === 0 ? "border-border text-muted-foreground/30 line-through cursor-not-allowed"
                           : "border-border hover:border-foreground"
-                      }`}>
-                      {v.size}
-                    </button>
+                      }`}>{v.size}</button>
                   ))}
                 </div>
               </div>
             )}
 
             {!isSoldOut && (
-              <div className="mb-8">
-                <p className="editorial-heading text-[9px] mb-3">Quantity</p>
+              <div className="mb-6">
+                <p className="editorial-heading text-[9px] mb-2">Quantity</p>
                 <div className="flex items-center border border-border w-fit">
-                  <button onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-10 h-10 flex items-center justify-center hover:opacity-50 transition-opacity duration-150">
+                  <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-9 h-9 flex items-center justify-center hover:opacity-50 transition-opacity duration-150">
                     <Minus className="w-3 h-3" />
                   </button>
-                  <span className="w-12 h-10 flex items-center justify-center text-[11px] tracking-widest border-x border-border">{quantity}</span>
-                  <button onClick={() => setQuantity(Math.min(maxQty, quantity + 1))}
-                    className="w-10 h-10 flex items-center justify-center hover:opacity-50 transition-opacity duration-150">
+                  <span className="w-10 h-9 flex items-center justify-center text-[11px] tracking-widest border-x border-border">{quantity}</span>
+                  <button onClick={() => setQuantity(Math.min(maxQty, quantity + 1))} className="w-9 h-9 flex items-center justify-center hover:opacity-50 transition-opacity duration-150">
                     <Plus className="w-3 h-3" />
                   </button>
                 </div>
@@ -236,26 +269,24 @@ const ProductPage = () => {
             )}
 
             {!isSoldOut && (
-              <div className="flex flex-col gap-3 mb-10">
-                <button onClick={handleAddToCart}
-                  className="w-full bg-primary text-primary-foreground py-4 editorial-heading text-[11px] hover:opacity-80 transition-opacity duration-150 min-h-[48px]">
+              <div className="flex flex-col gap-2 mb-8">
+                <button onClick={handleAddToCart} className="w-full bg-primary text-primary-foreground py-3 editorial-heading text-[10px] hover:opacity-80 transition-opacity duration-150 min-h-[44px]">
                   Add to Cart
                 </button>
-                <button className="w-full border border-foreground py-4 editorial-heading text-[11px] hover:bg-foreground hover:text-background transition-all duration-300 min-h-[48px]">
+                <button className="w-full border border-foreground py-3 editorial-heading text-[10px] hover:bg-foreground hover:text-background transition-all duration-300 min-h-[44px]">
                   Buy Now
                 </button>
-                <button onClick={() => setOfferOpen(true)}
-                  className="w-full border border-border py-4 editorial-heading text-[11px] hover:border-foreground transition-all duration-150 min-h-[48px]">
+                <button onClick={() => setOfferOpen(true)} className="w-full border border-border py-3 editorial-heading text-[10px] hover:border-foreground transition-all duration-150 min-h-[44px]">
                   Make an Offer
                 </button>
               </div>
             )}
 
             {/* Product details */}
-            <div className="border-t border-border pt-8 mb-8 space-y-3">
-              <p className="editorial-heading text-[9px] mb-4">Product Details</p>
+            <div className="border-t border-border pt-6 mb-6 space-y-2">
+              <p className="editorial-heading text-[9px] mb-3">Product Details</p>
               {product.description && (
-                <p className="text-[11px] font-light leading-relaxed text-muted-foreground mb-4">{product.description}</p>
+                <p className="text-[11px] font-light leading-relaxed text-muted-foreground mb-3">{product.description}</p>
               )}
               <div className="grid grid-cols-2 gap-y-2 text-[10px] font-light">
                 {product.color && (<><span className="text-muted-foreground tracking-wide">Color</span><span className="tracking-wide">{product.color}</span></>)}
@@ -271,11 +302,11 @@ const ProductPage = () => {
             </div>
 
             {product.condition && (
-              <div className="border-t border-border pt-8 mb-8">
-                <p className="editorial-heading text-[9px] mb-4">Condition</p>
-                <div className="flex gap-2 mb-3 flex-wrap">
+              <div className="border-t border-border pt-6 mb-6">
+                <p className="editorial-heading text-[9px] mb-3">Condition</p>
+                <div className="flex gap-1 mb-2 flex-wrap">
                   {conditionLevels.map((level, i) => (
-                    <span key={level} className={`text-[8px] tracking-[0.15em] uppercase px-3 py-1 border transition-colors duration-150 ${
+                    <span key={level} className={`text-[7px] tracking-[0.12em] uppercase px-2 py-0.5 border transition-colors duration-150 ${
                       i <= conditionIndex ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground"
                     }`}>{level}</span>
                   ))}
@@ -287,9 +318,9 @@ const ProductPage = () => {
               </div>
             )}
 
-            <div className="border-t border-border pt-8">
-              <p className="editorial-heading text-[9px] mb-4">Guaranteed Authenticity</p>
-              <p className="text-[11px] font-light leading-relaxed text-muted-foreground">
+            <div className="border-t border-border pt-6">
+              <p className="editorial-heading text-[9px] mb-3">Guaranteed Authenticity</p>
+              <p className="text-[10px] font-light leading-relaxed text-muted-foreground">
                 Every item is rigorously authenticated by our experts. All photos are of the actual product you will receive.
               </p>
             </div>
@@ -297,9 +328,9 @@ const ProductPage = () => {
         </div>
 
         {related.length > 0 && (
-          <section className="mt-24">
+          <section className="mt-20">
             <h2 className="section-title">You May Also Like</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
               {related.map((p) => <ProductCard key={p.id} {...p} />)}
             </div>
           </section>

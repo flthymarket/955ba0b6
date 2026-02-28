@@ -11,6 +11,9 @@ const navLinks = [
   { label: "New Arrivals", href: "/collection?filter=new" },
   { label: "Brands", href: "/brands" },
   { label: "All", href: "/collection" },
+  { label: "Tops", href: "/collection?filter=tops" },
+  { label: "Bottoms", href: "/collection?filter=bottoms" },
+  { label: "Outerwear", href: "/collection?filter=outerwear" },
   { label: "Accessories", href: "/collection?filter=accessories" },
   { label: "Stories", href: "/stories" },
 ];
@@ -48,12 +51,12 @@ const Header = () => {
       >
         {/* Top bar */}
         <div className="border-b border-border">
-          <div className="max-w-[1400px] mx-auto px-6 py-2 flex justify-between items-center">
-            <span className="text-[9px] tracking-[0.2em] uppercase font-light">FLTHYMRKT</span>
+          <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-1.5 flex justify-between items-center">
+            <span className="text-[8px] md:text-[9px] tracking-[0.2em] uppercase font-light">FLTHYMRKT</span>
             <div className="flex items-center gap-6">
               <div className="relative">
                 <button onClick={() => setHelpOpen(!helpOpen)}
-                  className="nav-link text-[9px] flex items-center gap-1 text-muted-foreground">
+                  className="nav-link text-[8px] md:text-[9px] flex items-center gap-1 text-muted-foreground">
                   Help <ChevronDown className="w-3 h-3" />
                 </button>
                 {helpOpen && (
@@ -72,17 +75,17 @@ const Header = () => {
         </div>
 
         {/* Main header */}
-        <div className="max-w-[1400px] mx-auto px-6">
-          <div className="relative flex items-center justify-center py-4">
+        <div className="max-w-[1400px] mx-auto px-4 md:px-6">
+          <div className="relative flex items-center justify-center py-3">
             <button className="lg:hidden absolute left-0" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
 
             <Link to="/" className="flex-shrink-0">
-              <img src={logo} alt="FLTHY MRKT" className="h-14 md:h-16 lg:h-20 w-auto" />
+              <img src={logo} alt="FLTHY MRKT" className="h-10 md:h-14 lg:h-16 w-auto" />
             </Link>
 
-            <div className="flex items-center gap-5 absolute right-0">
+            <div className="flex items-center gap-4 md:gap-5 absolute right-0">
               <button onClick={() => setSearchOpen(true)} className="transition-opacity duration-150 hover:opacity-50">
                 <Search className="w-4 h-4" />
               </button>
@@ -100,9 +103,9 @@ const Header = () => {
             </div>
           </div>
 
-          <nav className="hidden lg:flex items-center justify-center gap-8 pb-4 border-b border-border">
+          <nav className="hidden lg:flex items-center justify-center gap-6 pb-3 border-b border-border">
             {navLinks.map((link) => (
-              <Link key={link.label} to={link.href} className="nav-link">{link.label}</Link>
+              <Link key={link.label} to={link.href} className="nav-link text-[10px]">{link.label}</Link>
             ))}
           </nav>
         </div>
@@ -110,8 +113,8 @@ const Header = () => {
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-40 bg-background pt-36 px-6 animate-fade-in">
-          <nav className="flex flex-col gap-6">
+        <div className="fixed inset-0 z-40 bg-background pt-28 px-6 animate-fade-in">
+          <nav className="flex flex-col gap-5">
             {navLinks.map((link) => (
               <Link key={link.label} to={link.href} className="nav-link text-sm" onClick={() => setMobileMenuOpen(false)}>
                 {link.label}
