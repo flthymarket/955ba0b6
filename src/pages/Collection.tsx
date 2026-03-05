@@ -1,90 +1,67 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { ChevronDown, SlidersHorizontal } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import ProductCard from "@/components/ProductCard";
+import { storefrontApiRequest, PRODUCTS_QUERY, type ShopifyProduct } from "@/lib/shopify";
+import { useCartStore } from "@/stores/cartStore";
+import { toast } from "sonner";
 
 const sortOptions = ["Newest", "Price: Low to High", "Price: High to Low"];
-const categories = ["All", "Tops", "Bottoms", "Outerwear", "Accessories", "Bags", "Jewelry", "Dresses"];
 
 const Collection = () => {
   const [searchParams] = useSearchParams();
   const filter = searchParams.get("filter");
-  const brandParam = searchParams.get("brand");
-  const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const [currentSort, setCurrentSort] = useState("Newest");
-  const [products, setProducts] = useState<any[]>([]);
-  const [brands, setBrands] = useState<{ id: string; name: string }[]>([]);
-  const [selectedBrands, setSelectedBrands] = useState<string[]>(brandParam ? [brandParam] : []);
-  const [selectedCategory, setSelectedCategory] = useState<string>(filter ? filter.charAt(0).toUpperCase() + filter.slice(1) : "");
-  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
-  const [allSizes, setAllSizes] = useState<string[]>([]);
+  const [products, setProducts] = useState<ShopifyProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const addItem = useCartStore(state => state.addItem);
+  const isLoading = useCartStore(state => state.isLoading);
 
   useEffect(() => {
-    if (filter) {
-      const cat = filter.charAt(0).toUpperCase() + filter.slice(1);
-      if (filter === "new") setSelectedCategory("");
-      else setSelectedCategory(cat);
-    }
-  }, [filter]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      let query = supabase.from("products").select("id, name, price, category, brand_id, brands(name), created_at, discount_enabled, discount_type, discount_value, discount_start, discount_end, is_flash_sale");
-
-      if (filter === "new") query = query.order("created_at", { ascending: false });
-
-      const { data } = await query;
-
-      if (data) {
-        const ids = data.map((p) => p.id);
-        const { data: images } = await supabase.from("product_images").select("product_id, url").in("product_id", ids);
-        const imgMap: Record<string, string> = {};
-        images?.forEach((img) => { if (!imgMap[img.product_id]) imgMap[img.product_id] = img.url; });
-
-        const { data: variants } = await supabase.from("product_variants").select("product_id, size, quantity").in("product_id", ids);
-        const sizeSet = new Set<string>();
-        variants?.forEach((v) => sizeSet.add(v.size));
-        setAllSizes(Array.from(sizeSet).sort());
-
-        let filtered = data;
-
-        // Category filter
-        if (selectedCategory && selectedCategory !== "All") {
-          filtered = filtered.filter((p) => p.category.toLowerCase() === selectedCategory.toLowerCase());
+    const fetchProducts = async () => {
+      setLoading(true);
+      try {
+        // Build query filter if needed
+        let queryFilter: string | undefined;
+        if (filter && filter !== "new" && filter !== "all") {
+          queryFilter = `product_type:${filter}`;
         }
-
-        if (selectedBrands.length > 0) {
-          filtered = filtered.filter((p) => selectedBrands.includes((p.brands as any)?.name));
+        const data = await storefrontApiRequest(PRODUCTS_QUERY, { first: 50, query: queryFilter });
+        if (data?.data?.products?.edges) {
+          let items = data.data.products.edges as ShopifyProduct[];
+          // Sort
+          if (currentSort === "Price: Low to High") {
+            items = [...items].sort((a, b) => parseFloat(a.node.priceRange.minVariantPrice.amount) - parseFloat(b.node.priceRange.minVariantPrice.amount));
+          } else if (currentSort === "Price: High to Low") {
+            items = [...items].sort((a, b) => parseFloat(b.node.priceRange.minVariantPrice.amount) - parseFloat(a.node.priceRange.minVariantPrice.amount));
+          }
+          setProducts(items);
         }
-
-        if (currentSort === "Price: Low to High") filtered.sort((a, b) => a.price - b.price);
-        else if (currentSort === "Price: High to Low") filtered.sort((a, b) => b.price - a.price);
-        else filtered.sort((a, b) => new Date(b.created_at || "").getTime() - new Date(a.created_at || "").getTime());
-
-        setProducts(filtered.map((p) => ({
-          id: p.id, name: p.name, brand: (p.brands as any)?.name || "", price: p.price,
-          image: imgMap[p.id] || "/placeholder.svg",
-          discount_enabled: p.discount_enabled, discount_type: p.discount_type,
-          discount_value: p.discount_value, discount_start: p.discount_start,
-          discount_end: p.discount_end, is_flash_sale: p.is_flash_sale,
-        })));
+      } catch (err) {
+        console.error("Failed to fetch products:", err);
       }
+      setLoading(false);
     };
+    fetchProducts();
+  }, [filter, currentSort]);
 
-    supabase.from("brands").select("id, name").order("name").then(({ data }) => {
-      if (data) setBrands(data);
+  const handleQuickAdd = async (product: ShopifyProduct) => {
+    const variant = product.node.variants.edges[0]?.node;
+    if (!variant) return;
+    await addItem({
+      product,
+      variantId: variant.id,
+      variantTitle: variant.title,
+      price: variant.price,
+      quantity: 1,
+      selectedOptions: variant.selectedOptions || [],
     });
-
-    fetchData();
-  }, [filter, selectedBrands, currentSort, brandParam, selectedCategory]);
-
-  const toggleBrand = (name: string) => {
-    setSelectedBrands((prev) => prev.includes(name) ? prev.filter((b) => b !== name) : [...prev, name]);
+    toast.success("Added to bag");
   };
 
-  const pageTitle = selectedCategory && selectedCategory !== "All" ? selectedCategory : filter === "new" ? "New Arrivals" : "All";
+  const pageTitle = filter && filter !== "all"
+    ? filter === "new" ? "New Arrivals" : filter.charAt(0).toUpperCase() + filter.slice(1)
+    : "All";
 
   return (
     <main className="pt-28 md:pt-32 pb-24 animate-fade-in">
@@ -94,10 +71,6 @@ const Collection = () => {
         </h1>
 
         <div className="flex items-center justify-between mb-8 border-b border-border pb-3">
-          <button onClick={() => setFiltersOpen(!filtersOpen)} className="nav-link text-[9px] flex items-center gap-2">
-            <SlidersHorizontal className="w-3 h-3" />
-            {filtersOpen ? "Hide Filters" : "Filters"}
-          </button>
           <span className="text-[9px] text-muted-foreground tracking-widest">{products.length} ITEMS</span>
           <div className="relative">
             <button onClick={() => setSortOpen(!sortOpen)} className="nav-link text-[9px] flex items-center gap-2">
@@ -116,67 +89,49 @@ const Collection = () => {
           </div>
         </div>
 
-        <div className="flex gap-8">
-          {filtersOpen && (
-            <aside className="w-48 flex-shrink-0 hidden md:block animate-fade-in">
-              {/* Category */}
-              <div className="border-b border-border py-4">
-                <p className="nav-link text-[9px] mb-3">Category</p>
-                <div className="flex flex-col gap-2">
-                  {categories.map((c) => (
-                    <button key={c} onClick={() => setSelectedCategory(c === "All" ? "" : c)}
-                      className={`text-left text-[10px] tracking-wide font-light transition-opacity ${
-                        (selectedCategory === c) || (!selectedCategory && c === "All") ? "opacity-100" : "opacity-40 hover:opacity-70"
-                      }`}>
-                      {c}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {/* Brand */}
-              <div className="border-b border-border py-4">
-                <p className="nav-link text-[9px] mb-3">Brand</p>
-                <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto">
-                  {brands.map((b) => (
-                    <label key={b.id} className="flex items-center gap-3 cursor-pointer">
-                      <input type="checkbox" checked={selectedBrands.includes(b.name)}
-                        onChange={() => toggleBrand(b.name)}
-                        className="w-3 h-3 appearance-none border border-foreground checked:bg-foreground cursor-pointer" />
-                      <span className="text-[10px] tracking-wide font-light">{b.name}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-              {/* Size */}
-              {allSizes.length > 0 && (
-                <div className="border-b border-border py-4">
-                  <p className="nav-link text-[9px] mb-3">Size</p>
-                  <div className="flex flex-col gap-2">
-                    {allSizes.map((s) => (
-                      <label key={s} className="flex items-center gap-3 cursor-pointer">
-                        <input type="checkbox" checked={selectedSizes.includes(s)}
-                          onChange={() => setSelectedSizes((p) => p.includes(s) ? p.filter((x) => x !== s) : [...p, s])}
-                          className="w-3 h-3 appearance-none border border-foreground checked:bg-foreground cursor-pointer" />
-                        <span className="text-[10px] tracking-wide font-light">{s}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </aside>
-          )}
-
-          <div className="flex-1">
-            <div className={`grid gap-4 md:gap-6 grid-cols-2 ${filtersOpen ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
-              {products.map((product) => (
-                <ProductCard key={product.id} {...product} />
-              ))}
-            </div>
-            {products.length === 0 && (
-              <p className="text-center py-20 text-muted-foreground text-xs tracking-widest uppercase">No products found</p>
-            )}
+        {loading ? (
+          <div className="text-center py-20">
+            <p className="text-muted-foreground text-xs tracking-widest uppercase">Loading...</p>
           </div>
-        </div>
+        ) : products.length === 0 ? (
+          <p className="text-center py-20 text-muted-foreground text-xs tracking-widest uppercase">No products found</p>
+        ) : (
+          <div className="grid gap-4 md:gap-6 grid-cols-2 lg:grid-cols-4">
+            {products.map((product) => {
+              const img = product.node.images.edges[0]?.node;
+              const price = product.node.priceRange.minVariantPrice;
+              return (
+                <div key={product.node.id} className="group">
+                  <Link to={`/product/${product.node.handle}`} className="block">
+                    <div className="aspect-[3/4] overflow-hidden mb-4 bg-secondary">
+                      {img ? (
+                        <img
+                          src={img.url}
+                          alt={img.altText || product.node.title}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">No Image</div>
+                      )}
+                    </div>
+                    <p className="product-title text-[10px] mb-1">{product.node.title}</p>
+                    <p className="product-price text-[10px]">
+                      {price.currencyCode} {parseFloat(price.amount).toFixed(2)}
+                    </p>
+                  </Link>
+                  <button
+                    onClick={() => handleQuickAdd(product)}
+                    disabled={isLoading}
+                    className="mt-2 w-full text-[9px] tracking-[0.2em] uppercase font-light border border-border py-2 hover:bg-foreground hover:text-background transition-all duration-300 opacity-0 group-hover:opacity-100"
+                  >
+                    Quick Add
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </main>
   );
