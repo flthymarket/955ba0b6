@@ -4,8 +4,9 @@ import { Search, User, ShoppingBag, ChevronDown, Menu, X } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/hooks/useAuth";
 import SearchOverlay from "./SearchOverlay";
-import CartDrawer, { useCart } from "./CartDrawer";
+import CartDrawer from "./CartDrawer";
 import AnnouncementBanner from "./AnnouncementBanner";
+import { useCartStore } from "@/stores/cartStore";
 
 const navLinks = [
   { label: "New Arrivals", href: "/collection?filter=new" },
@@ -33,7 +34,7 @@ const Header = () => {
   const [cartOpen, setCartOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user } = useAuth();
-  const { cartCount } = useCart();
+  const totalItems = useCartStore(state => state.items.reduce((sum, i) => sum + i.quantity, 0));
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
@@ -49,7 +50,6 @@ const Header = () => {
           scrolled ? "bg-background/95 backdrop-blur-sm border-b border-border" : "bg-background"
         }`}
       >
-        {/* Top bar */}
         <div className="border-b border-border">
           <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-1.5 flex justify-between items-center">
             <span className="text-[8px] md:text-[9px] tracking-[0.2em] uppercase font-light">FLTHYMRKT</span>
@@ -74,7 +74,6 @@ const Header = () => {
           </div>
         </div>
 
-        {/* Main header */}
         <div className="max-w-[1400px] mx-auto px-4 md:px-6">
           <div className="relative flex items-center justify-center py-3">
             <button className="lg:hidden absolute left-0" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
@@ -94,9 +93,9 @@ const Header = () => {
               </Link>
               <button onClick={() => setCartOpen(true)} className="transition-opacity duration-150 hover:opacity-50 relative">
                 <ShoppingBag className="w-4 h-4" />
-                {cartCount > 0 && (
+                {totalItems > 0 && (
                   <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-foreground text-background text-[7px] flex items-center justify-center rounded-full">
-                    {cartCount}
+                    {totalItems}
                   </span>
                 )}
               </button>
@@ -111,7 +110,6 @@ const Header = () => {
         </div>
       </header>
 
-      {/* Mobile menu */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-40 bg-background pt-28 px-6 animate-fade-in">
           <nav className="flex flex-col gap-5">

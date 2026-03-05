@@ -1,122 +1,54 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Minus, Plus } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import ProductCard from "@/components/ProductCard";
-import OfferModal from "@/components/OfferModal";
-import { useCart } from "@/components/CartDrawer";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
-
-const conditionLevels = ["Fair", "Good", "Great", "Excellent", "Pristine"];
-
-const calcFinalPrice = (price: number, type?: string, value?: number) => {
-  if (!type || !value) return price;
-  if (type === "percentage") return Math.round((price - price * value / 100) * 100) / 100;
-  if (type === "fixed") return Math.max(0, Math.round((price - value) * 100) / 100);
-  if (type === "override") return Math.round(value * 100) / 100;
-  return price;
-};
-
-const isDiscountActive = (enabled?: boolean, start?: string | null, end?: string | null) => {
-  if (!enabled) return false;
-  const now = Date.now();
-  if (start && new Date(start).getTime() > now) return false;
-  if (end && new Date(end).getTime() < now) return false;
-  return true;
-};
+import { Minus, Plus, Loader2 } from "lucide-react";
+import { storefrontApiRequest, PRODUCT_BY_HANDLE_QUERY, PRODUCTS_QUERY, type ShopifyProduct } from "@/lib/shopify";
+import { useCartStore } from "@/stores/cartStore";
+import { toast } from "sonner";
 
 const ProductPage = () => {
-  const { id } = useParams();
-  const { user } = useAuth();
-  const { addToCart } = useCart();
-  const { toast } = useToast();
-  const [product, setProduct] = useState<any>(null);
-  const [variants, setVariants] = useState<any[]>([]);
-  const [images, setImages] = useState<any[]>([]);
-  const [selectedSize, setSelectedSize] = useState("");
+  const { id: handle } = useParams();
+  const [product, setProduct] = useState<ShopifyProduct["node"] | null>(null);
+  const [related, setRelated] = useState<ShopifyProduct[]>([]);
+  const [selectedVariantId, setSelectedVariantId] = useState<string>("");
   const [quantity, setQuantity] = useState(1);
   const [currentImage, setCurrentImage] = useState(0);
-  const [related, setRelated] = useState<any[]>([]);
-  const [offerOpen, setOfferOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [flashTimeLeft, setFlashTimeLeft] = useState("");
-  const [viewEnhanced, setViewEnhanced] = useState(false);
-  const [enhancedUrl, setEnhancedUrl] = useState<string | null>(null);
-  const [enhancing, setEnhancing] = useState(false);
+  const addItem = useCartStore(state => state.addItem);
+  const cartLoading = useCartStore(state => state.isLoading);
 
   useEffect(() => {
-    if (!id) return;
-    const fetchData = async () => {
+    if (!handle) return;
+    const fetchProduct = async () => {
       setLoading(true);
-      setViewEnhanced(false);
-      setEnhancedUrl(null);
-      const { data: p } = await supabase.from("products").select("*, brands(name)").eq("id", id).single();
-
-      if (p) {
-        setProduct(p);
-        const [{ data: v }, { data: img }, { data: rel }] = await Promise.all([
-          supabase.from("product_variants").select("*").eq("product_id", id),
-          supabase.from("product_images").select("url, sort_order").eq("product_id", id).order("sort_order"),
-          supabase.from("products").select("id, name, price, brands(name), discount_enabled, discount_type, discount_value, discount_start, discount_end, is_flash_sale").neq("id", id).limit(4),
-        ]);
-        if (v) setVariants(v);
-        if (img) setImages(img);
-        if (rel) {
-          const relIds = rel.map((r) => r.id);
-          const { data: relImgs } = await supabase.from("product_images").select("product_id, url").in("product_id", relIds);
-          const imgMap: Record<string, string> = {};
-          relImgs?.forEach((ri) => { if (!imgMap[ri.product_id]) imgMap[ri.product_id] = ri.url; });
-          setRelated(rel.map((r) => ({
-            id: r.id, name: r.name, brand: (r.brands as any)?.name || "", price: r.price,
-            image: imgMap[r.id] || "/placeholder.svg",
-            discount_enabled: r.discount_enabled, discount_type: r.discount_type,
-            discount_value: r.discount_value, discount_start: r.discount_start,
-            discount_end: r.discount_end, is_flash_sale: r.is_flash_sale,
-          })));
+      try {
+        const data = await storefrontApiRequest(PRODUCT_BY_HANDLE_QUERY, { handle });
+        const p = data?.data?.productByHandle;
+        if (p) {
+          setProduct(p);
+          // Select first available variant
+          const firstAvailable = p.variants.edges.find((v: any) => v.node.availableForSale);
+          if (firstAvailable) setSelectedVariantId(firstAvailable.node.id);
+          else if (p.variants.edges[0]) setSelectedVariantId(p.variants.edges[0].node.id);
         }
+        // Fetch related
+        const relData = await storefrontApiRequest(PRODUCTS_QUERY, { first: 4 });
+        if (relData?.data?.products?.edges) {
+          setRelated(relData.data.products.edges.filter((rp: ShopifyProduct) => rp.node.handle !== handle).slice(0, 4));
+        }
+      } catch (err) {
+        console.error("Failed to fetch product:", err);
       }
       setLoading(false);
     };
-    fetchData();
-  }, [id]);
-
-  // Flash sale countdown
-  useEffect(() => {
-    if (!product?.is_flash_sale || !product?.discount_end || !isDiscountActive(product.discount_enabled, product.discount_start, product.discount_end)) return;
-    const interval = setInterval(() => {
-      const diff = new Date(product.discount_end).getTime() - Date.now();
-      if (diff <= 0) { setFlashTimeLeft(""); clearInterval(interval); return; }
-      const h = Math.floor(diff / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      const s = Math.floor((diff % 60000) / 1000);
-      setFlashTimeLeft(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [product]);
-
-  const handleEnhance = async () => {
-    const imgUrl = images[currentImage]?.url;
-    if (!imgUrl || enhancing) return;
-    setEnhancing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("enhance-image", { body: { imageUrl: imgUrl } });
-      if (error) throw error;
-      if (data?.enhancedUrl) {
-        setEnhancedUrl(data.enhancedUrl);
-        setViewEnhanced(true);
-        toast({ title: "Image enhanced!" });
-      }
-    } catch (err: any) {
-      toast({ title: "Enhancement failed", description: err.message, variant: "destructive" });
-    }
-    setEnhancing(false);
-  };
+    fetchProduct();
+    setCurrentImage(0);
+    setQuantity(1);
+  }, [handle]);
 
   if (loading) {
     return (
       <main className="pt-32 pb-24 text-center">
-        <p className="text-muted-foreground text-xs tracking-widest uppercase">Loading...</p>
+        <Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" />
       </main>
     );
   }
@@ -129,30 +61,26 @@ const ProductPage = () => {
     );
   }
 
-  const selectedVariant = variants.find((v: any) => v.size === selectedSize);
-  const maxQty = selectedVariant?.quantity || 1;
-  const conditionIndex = conditionLevels.indexOf(product.condition || "Good");
-  const totalStock = variants.reduce((sum: number, v: any) => sum + v.quantity, 0);
-  const isSoldOut = variants.length > 0 && totalStock === 0;
-  const mainImage = viewEnhanced && enhancedUrl ? enhancedUrl : (images[currentImage]?.url || "/placeholder.svg");
-  const brandName = (product.brands as any)?.name || "";
+  const selectedVariant = product.variants.edges.find(v => v.node.id === selectedVariantId)?.node;
+  const images = product.images.edges;
+  const mainImage = images[currentImage]?.node;
+  const price = selectedVariant?.price || product.priceRange.minVariantPrice;
+  const hasOptions = product.options.some(o => o.name !== "Title" || o.values.length > 1);
 
-  const discountActive = isDiscountActive(product.discount_enabled, product.discount_start, product.discount_end);
-  const finalPrice = discountActive ? calcFinalPrice(product.price, product.discount_type, product.discount_value) : product.price;
-  const pct = discountActive && product.discount_type === "percentage" && product.discount_value ? product.discount_value :
-    discountActive && finalPrice < product.price ? Math.round((1 - finalPrice / product.price) * 100) : 0;
-
-  const handleAddToCart = () => {
-    if (variants.length > 0 && !selectedSize) {
-      toast({ title: "Please select a size", variant: "destructive" });
+  const handleAddToCart = async () => {
+    if (!selectedVariant) {
+      toast.error("Please select an option");
       return;
     }
-    addToCart({
-      product_id: product.id, name: product.name, brand: brandName,
-      price: finalPrice, size: selectedSize || null, quantity,
-      image: images[0]?.url || "/placeholder.svg", maxQty,
+    await addItem({
+      product: { node: product } as ShopifyProduct,
+      variantId: selectedVariant.id,
+      variantTitle: selectedVariant.title,
+      price: selectedVariant.price,
+      quantity,
+      selectedOptions: selectedVariant.selectedOptions || [],
     });
-    toast({ title: "Added to bag" });
+    toast.success("Added to bag");
   };
 
   return (
@@ -162,159 +90,101 @@ const ProductPage = () => {
           <span className="text-[9px] tracking-widest text-muted-foreground font-light">
             <Link to="/" className="hover:opacity-50 transition-opacity duration-150">HOME</Link>{" / "}
             <Link to="/collection" className="hover:opacity-50 transition-opacity duration-150">COLLECTION</Link>{" / "}
-            <span className="text-foreground">{product.name.toUpperCase()}</span>
+            <span className="text-foreground">{product.title.toUpperCase()}</span>
           </span>
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
+          {/* Images */}
           <div>
-            <div className="aspect-[3/4] bg-secondary overflow-hidden mb-3 relative group">
-              <img src={mainImage} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 hover:scale-[1.02]" />
-              {/* Enhanced/Original toggle */}
-              {enhancedUrl && (
-                <div className="absolute top-3 left-3 flex gap-1 z-10">
-                  <button onClick={() => setViewEnhanced(false)}
-                    className={`text-[8px] tracking-[0.1em] uppercase px-2 py-1 transition-all ${!viewEnhanced ? "bg-foreground text-background" : "bg-background/80 text-foreground"}`}>
-                    Original
-                  </button>
-                  <button onClick={() => setViewEnhanced(true)}
-                    className={`text-[8px] tracking-[0.1em] uppercase px-2 py-1 transition-all ${viewEnhanced ? "bg-foreground text-background" : "bg-background/80 text-foreground"}`}>
-                    Enhanced
-                  </button>
-                </div>
-              )}
-              {!enhancedUrl && images.length > 0 && (
-                <button onClick={handleEnhance} disabled={enhancing}
-                  className="absolute bottom-3 left-3 text-[8px] tracking-[0.1em] uppercase px-3 py-1.5 bg-background/80 text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300 disabled:opacity-50">
-                  {enhancing ? "Enhancing..." : "✨ Enhance"}
-                </button>
+            <div className="aspect-[3/4] bg-secondary overflow-hidden mb-3">
+              {mainImage ? (
+                <img src={mainImage.url} alt={mainImage.altText || product.title} className="w-full h-full object-cover transition-transform duration-500 hover:scale-[1.02]" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">No Image</div>
               )}
             </div>
             {images.length > 1 && (
               <div className="grid grid-cols-4 gap-2">
-                {images.map((img: any, i: number) => (
-                  <button key={i} onClick={() => { setCurrentImage(i); setViewEnhanced(false); }}
+                {images.map((img, i) => (
+                  <button key={i} onClick={() => setCurrentImage(i)}
                     className={`aspect-square overflow-hidden border transition-all duration-150 ${currentImage === i ? "border-foreground" : "border-border hover:border-foreground/50"}`}>
-                    <img src={img.url} alt="" className="w-full h-full object-cover" />
+                    <img src={img.node.url} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
             )}
           </div>
 
+          {/* Details */}
           <div className="lg:pt-2">
-            <p className="editorial-heading text-[9px] text-muted-foreground mb-1">{brandName}</p>
-            <h1 className="text-[14px] md:text-lg tracking-[0.15em] font-extralight mb-2 uppercase">{product.name}</h1>
+            <h1 className="text-[14px] md:text-lg tracking-[0.15em] font-extralight mb-2 uppercase">{product.title}</h1>
+            <p className="text-[14px] tracking-[0.1em] font-light mb-6">
+              {price.currencyCode} {parseFloat(price.amount).toFixed(2)}
+            </p>
 
-            {/* Price */}
-            <div className="mb-6">
-              {discountActive && finalPrice < product.price ? (
-                <div className="space-y-1">
-                  <p className="text-[12px] tracking-[0.1em] font-light text-muted-foreground line-through">${product.price.toLocaleString()}</p>
-                  <div className="flex items-center gap-3">
-                    <p className="text-[16px] tracking-[0.1em] font-light">${finalPrice.toLocaleString()}</p>
-                    {pct > 0 && (
-                      <span className="text-[11px] font-light text-[hsl(352,82%,38%)] border border-[hsl(352,82%,38%)] px-2 py-0.5 rounded-full">-{pct}%</span>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <p className="text-[14px] tracking-[0.1em] font-light">${product.price.toLocaleString()}</p>
-              )}
-              {discountActive && product.is_flash_sale && (
-                <div className="mt-2">
-                  <p className="text-[9px] tracking-[0.15em] uppercase font-light text-[hsl(352,82%,38%)]">Flash Sale</p>
-                  {flashTimeLeft && (
-                    <p className="text-[11px] font-light mt-1">Ends in <span className="font-mono tabular-nums text-[hsl(352,82%,38%)]">{flashTimeLeft}</span></p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {isSoldOut && (
-              <div className="mb-6 border border-border p-3 text-center">
-                <span className="text-[10px] tracking-widest uppercase text-muted-foreground">Sold Out</span>
-              </div>
-            )}
-
-            {variants.length > 0 && !isSoldOut && (
-              <div className="mb-5">
-                <p className="editorial-heading text-[9px] mb-2">Size</p>
+            {/* Variant selection */}
+            {hasOptions && product.options.map((option) => (
+              <div key={option.name} className="mb-5">
+                <p className="editorial-heading text-[9px] mb-2">{option.name}</p>
                 <div className="flex gap-2 flex-wrap">
-                  {variants.map((v: any) => (
-                    <button key={v.id} onClick={() => { setSelectedSize(v.size); setQuantity(1); }} disabled={v.quantity === 0}
-                      className={`min-w-[40px] h-9 border text-[10px] tracking-widest font-light transition-all duration-150 px-2 ${
-                        selectedSize === v.size ? "bg-foreground text-background border-foreground"
-                          : v.quantity === 0 ? "border-border text-muted-foreground/30 line-through cursor-not-allowed"
-                          : "border-border hover:border-foreground"
-                      }`}>{v.size}</button>
-                  ))}
+                  {option.values.map((val) => {
+                    const matchingVariant = product.variants.edges.find(v =>
+                      v.node.selectedOptions.some(so => so.name === option.name && so.value === val)
+                    );
+                    const isSelected = selectedVariant?.selectedOptions.some(
+                      so => so.name === option.name && so.value === val
+                    );
+                    const isAvailable = matchingVariant?.node.availableForSale;
+                    return (
+                      <button
+                        key={val}
+                        onClick={() => matchingVariant && setSelectedVariantId(matchingVariant.node.id)}
+                        disabled={!isAvailable}
+                        className={`min-w-[40px] h-9 border text-[10px] tracking-widest font-light transition-all duration-150 px-3 ${
+                          isSelected ? "bg-foreground text-background border-foreground"
+                            : !isAvailable ? "border-border text-muted-foreground/30 line-through cursor-not-allowed"
+                            : "border-border hover:border-foreground"
+                        }`}
+                      >
+                        {val}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-            )}
+            ))}
 
-            {!isSoldOut && (
-              <div className="mb-6">
-                <p className="editorial-heading text-[9px] mb-2">Quantity</p>
-                <div className="flex items-center border border-border w-fit">
-                  <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-9 h-9 flex items-center justify-center hover:opacity-50 transition-opacity duration-150">
-                    <Minus className="w-3 h-3" />
-                  </button>
-                  <span className="w-10 h-9 flex items-center justify-center text-[11px] tracking-widest border-x border-border">{quantity}</span>
-                  <button onClick={() => setQuantity(Math.min(maxQty, quantity + 1))} className="w-9 h-9 flex items-center justify-center hover:opacity-50 transition-opacity duration-150">
-                    <Plus className="w-3 h-3" />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {!isSoldOut && (
-              <div className="flex flex-col gap-2 mb-8">
-                <button onClick={handleAddToCart} className="w-full bg-primary text-primary-foreground py-3 editorial-heading text-[10px] hover:opacity-80 transition-opacity duration-150 min-h-[44px]">
-                  Add to Cart
+            {/* Quantity */}
+            <div className="mb-6">
+              <p className="editorial-heading text-[9px] mb-2">Quantity</p>
+              <div className="flex items-center border border-border w-fit">
+                <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-9 h-9 flex items-center justify-center hover:opacity-50 transition-opacity duration-150">
+                  <Minus className="w-3 h-3" />
                 </button>
-                <button className="w-full border border-foreground py-3 editorial-heading text-[10px] hover:bg-foreground hover:text-background transition-all duration-300 min-h-[44px]">
-                  Buy Now
+                <span className="w-10 h-9 flex items-center justify-center text-[11px] tracking-widest border-x border-border">{quantity}</span>
+                <button onClick={() => setQuantity(quantity + 1)} className="w-9 h-9 flex items-center justify-center hover:opacity-50 transition-opacity duration-150">
+                  <Plus className="w-3 h-3" />
                 </button>
-                <button onClick={() => setOfferOpen(true)} className="w-full border border-border py-3 editorial-heading text-[10px] hover:border-foreground transition-all duration-150 min-h-[44px]">
-                  Make an Offer
-                </button>
-              </div>
-            )}
-
-            {/* Product details */}
-            <div className="border-t border-border pt-6 mb-6 space-y-2">
-              <p className="editorial-heading text-[9px] mb-3">Product Details</p>
-              {product.description && (
-                <p className="text-[11px] font-light leading-relaxed text-muted-foreground mb-3">{product.description}</p>
-              )}
-              <div className="grid grid-cols-2 gap-y-2 text-[10px] font-light">
-                {product.color && (<><span className="text-muted-foreground tracking-wide">Color</span><span className="tracking-wide">{product.color}</span></>)}
-                {product.material && (<><span className="text-muted-foreground tracking-wide">Material</span><span className="tracking-wide">{product.material}</span></>)}
-                {product.measurements && typeof product.measurements === "object" &&
-                  Object.entries(product.measurements).map(([key, val]) => (
-                    <span key={key} className="contents">
-                      <span className="text-muted-foreground tracking-wide capitalize">{key}</span>
-                      <span className="tracking-wide">{String(val)}</span>
-                    </span>
-                  ))}
               </div>
             </div>
 
-            {product.condition && (
+            {/* Add to Cart */}
+            <div className="flex flex-col gap-2 mb-8">
+              <button
+                onClick={handleAddToCart}
+                disabled={cartLoading || !selectedVariant?.availableForSale}
+                className="w-full bg-primary text-primary-foreground py-3 editorial-heading text-[10px] hover:opacity-80 transition-opacity duration-150 min-h-[44px] flex items-center justify-center disabled:opacity-50"
+              >
+                {cartLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : selectedVariant?.availableForSale ? "Add to Cart" : "Sold Out"}
+              </button>
+            </div>
+
+            {/* Description */}
+            {product.description && (
               <div className="border-t border-border pt-6 mb-6">
-                <p className="editorial-heading text-[9px] mb-3">Condition</p>
-                <div className="flex gap-1 mb-2 flex-wrap">
-                  {conditionLevels.map((level, i) => (
-                    <span key={level} className={`text-[7px] tracking-[0.12em] uppercase px-2 py-0.5 border transition-colors duration-150 ${
-                      i <= conditionIndex ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground"
-                    }`}>{level}</span>
-                  ))}
-                </div>
-                <p className="text-[11px] font-light text-muted-foreground">
-                  <span className="text-foreground">{product.condition} Overall Condition</span>
-                  {product.condition_description && <><br />{product.condition_description}</>}
-                </p>
+                <p className="editorial-heading text-[9px] mb-3">Description</p>
+                <p className="text-[11px] font-light leading-relaxed text-muted-foreground">{product.description}</p>
               </div>
             )}
 
@@ -327,18 +197,28 @@ const ProductPage = () => {
           </div>
         </div>
 
+        {/* Related */}
         {related.length > 0 && (
           <section className="mt-20">
             <h2 className="section-title">You May Also Like</h2>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-              {related.map((p) => <ProductCard key={p.id} {...p} />)}
+              {related.map((rp) => {
+                const img = rp.node.images.edges[0]?.node;
+                const rpPrice = rp.node.priceRange.minVariantPrice;
+                return (
+                  <Link key={rp.node.id} to={`/product/${rp.node.handle}`} className="group block">
+                    <div className="aspect-[3/4] overflow-hidden mb-4 bg-secondary">
+                      {img && <img src={img.url} alt={img.altText || rp.node.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" loading="lazy" />}
+                    </div>
+                    <p className="product-title text-[10px] mb-1">{rp.node.title}</p>
+                    <p className="product-price text-[10px]">{rpPrice.currencyCode} {parseFloat(rpPrice.amount).toFixed(2)}</p>
+                  </Link>
+                );
+              })}
             </div>
           </section>
         )}
       </div>
-
-      <OfferModal isOpen={offerOpen} onClose={() => setOfferOpen(false)}
-        productId={product.id} productName={product.name} productPrice={product.price} />
     </main>
   );
 };
