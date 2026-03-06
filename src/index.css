@@ -30,8 +30,8 @@
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 92%;
-    --input: 0 0% 92%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
     --ring: 0 0% 0%;
 
     --radius: 0px;
@@ -55,13 +55,14 @@
   body {
     @apply bg-background text-foreground font-light antialiased;
     font-family: 'Poppins', sans-serif;
-    font-weight: 200;
+    font-weight: 300;
     letter-spacing: 0.02em;
+    font-size: 16px;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Poppins', sans-serif;
-    font-weight: 200;
+    font-weight: 300;
     letter-spacing: 0.15em;
     text-transform: uppercase;
   }
@@ -69,27 +70,27 @@
 
 @layer utilities {
   .nav-link {
-    @apply text-[11px] tracking-[0.2em] uppercase font-light transition-opacity duration-300 hover:opacity-50;
+    @apply text-xs tracking-[0.2em] uppercase font-light transition-opacity duration-300 hover:opacity-50;
     font-family: 'Poppins', sans-serif;
   }
 
   .editorial-heading {
-    @apply text-[11px] tracking-[0.25em] uppercase font-light;
+    @apply text-xs tracking-[0.25em] uppercase font-light;
     font-family: 'Poppins', sans-serif;
   }
 
   .product-title {
-    @apply text-xs tracking-[0.15em] uppercase font-light;
+    @apply text-sm tracking-[0.12em] uppercase font-light;
     font-family: 'Poppins', sans-serif;
   }
 
   .product-price {
-    @apply text-xs tracking-[0.1em] font-light;
+    @apply text-sm tracking-[0.1em] font-light;
     font-family: 'Poppins', sans-serif;
   }
 
   .section-title {
-    @apply text-[13px] tracking-[0.3em] uppercase font-extralight mb-12 text-center;
+    @apply text-base tracking-[0.3em] uppercase font-extralight mb-14 text-center;
     font-family: 'Poppins', sans-serif;
   }
 }
