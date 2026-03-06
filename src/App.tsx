@@ -14,12 +14,10 @@ import ResetPassword from "./pages/ResetPassword";
 import Account from "./pages/Account";
 import Help from "./pages/Help";
 import BrandsPage from "./pages/Brands";
-import Stories from "./pages/Stories";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/admin/Dashboard";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AdminBrands from "./pages/admin/AdminBrands";
-import AdminStories from "./pages/admin/AdminStories";
 import AdminDiscounts from "./pages/admin/AdminDiscounts";
 import AdminOffers from "./pages/admin/AdminOffers";
 import AdminOrders from "./pages/admin/AdminOrders";
@@ -37,7 +35,6 @@ const AppContent = () => {
       <Route path="/admin" element={<Dashboard />} />
       <Route path="/admin/products" element={<AdminProducts />} />
       <Route path="/admin/brands" element={<AdminBrands />} />
-      <Route path="/admin/stories" element={<AdminStories />} />
       <Route path="/admin/discounts" element={<AdminDiscounts />} />
       <Route path="/admin/offers" element={<AdminOffers />} />
       <Route path="/admin/orders" element={<AdminOrders />} />
@@ -54,7 +51,6 @@ const AppContent = () => {
       <Route path="/account" element={<Layout><Account /></Layout>} />
       <Route path="/help" element={<Layout><Help /></Layout>} />
       <Route path="/brands" element={<Layout><BrandsPage /></Layout>} />
-      <Route path="/stories" element={<Layout><Stories /></Layout>} />
       <Route path="*" element={<Layout><NotFound /></Layout>} />
     </Routes>
   );

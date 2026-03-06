@@ -1,30 +1,28 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { storefrontApiRequest, PRODUCTS_QUERY, type ShopifyProduct } from "@/lib/shopify";
 import { useCartStore } from "@/stores/cartStore";
 import { toast } from "sonner";
-import heroImage from "@/assets/hero-image.jpg";
+import heroImage from "@/assets/hero-sale.jpg";
+import { supabase } from "@/integrations/supabase/client";
 
-const useScrollReveal = () => {
+const useScrollReveal = (threshold = 0.1) => {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } }, { threshold: 0.1 });
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } }, { threshold });
     obs.observe(el);
     return () => obs.disconnect();
-  }, []);
+  }, [threshold]);
   return { ref, visible };
 };
 
 const Index = () => {
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
-  const [stories, setStories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const productsReveal = useScrollReveal();
-  const storiesReveal = useScrollReveal();
   const newsletterReveal = useScrollReveal();
   const addItem = useCartStore(state => state.addItem);
   const isLoading = useCartStore(state => state.isLoading);
@@ -42,19 +40,7 @@ const Index = () => {
       }
       setLoading(false);
     };
-
-    const fetchStories = async () => {
-      const { data } = await supabase
-        .from("stories")
-        .select("id, title, image_url, publish_date")
-        .eq("published", true)
-        .order("publish_date", { ascending: false })
-        .limit(3);
-      if (data) setStories(data);
-    };
-
     fetchProducts();
-    fetchStories();
   }, []);
 
   const handleQuickAdd = async (product: ShopifyProduct) => {
@@ -88,17 +74,10 @@ const Index = () => {
           alt="FLTHY MRKT Collection"
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-foreground/30" />
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
-          <h1 className="text-primary-foreground text-2xl md:text-4xl lg:text-5xl tracking-[0.4em] font-extralight uppercase mb-4 animate-fade-in">
-            FLTHY MRKT
-          </h1>
-          <p className="text-primary-foreground/80 text-[10px] md:text-xs tracking-[0.3em] font-extralight uppercase mb-8">
-            Curated Luxury · Pre-Owned & Archive
-          </p>
+        <div className="absolute inset-0 flex flex-col items-center justify-end pb-16 md:pb-24 px-6">
           <Link
             to="/collection"
-            className="text-primary-foreground text-[10px] tracking-[0.3em] font-extralight uppercase border border-primary-foreground/60 px-8 py-3 hover:bg-primary-foreground/10 transition-all duration-300"
+            className="text-foreground text-sm md:text-base tracking-[0.35em] uppercase font-light border-2 border-foreground px-10 py-4 bg-background/80 hover:bg-foreground hover:text-background transition-all duration-300"
           >
             Shop Now
           </Link>
@@ -108,32 +87,36 @@ const Index = () => {
       {/* New Arrivals / Product Grid */}
       <section
         ref={productsReveal.ref}
-        className={`max-w-[1400px] mx-auto px-4 md:px-6 py-16 md:py-24 transition-all duration-700 ${productsReveal.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
+        className={`max-w-[1400px] mx-auto px-4 md:px-8 py-20 md:py-28 transition-all duration-1000 ease-out ${productsReveal.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
       >
-        <h2 className="section-title">New Arrivals</h2>
+        <h2 className="text-base md:text-lg tracking-[0.35em] uppercase font-extralight mb-14 text-center">New Arrivals</h2>
 
         {loading ? (
           <div className="text-center py-20">
-            <p className="text-muted-foreground text-xs tracking-widest uppercase">Loading products...</p>
+            <p className="text-muted-foreground text-sm tracking-widest uppercase">Loading products...</p>
           </div>
         ) : products.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-muted-foreground text-xs tracking-widest uppercase mb-4">No products found</p>
-            <p className="text-muted-foreground text-[10px] tracking-wide font-light">
+            <p className="text-muted-foreground text-sm tracking-widest uppercase mb-4">No products found</p>
+            <p className="text-muted-foreground text-xs tracking-wide font-light">
               Products will appear here once added to the store.
             </p>
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-8">
               {products.map((product, i) => {
                 const img = product.node.images.edges[0]?.node;
                 const price = product.node.priceRange.minVariantPrice;
                 return (
                   <div
                     key={product.node.id}
-                    className="group transition-all duration-500"
-                    style={{ transitionDelay: `${i * 80}ms` }}
+                    className="group transition-all duration-700 ease-out"
+                    style={{
+                      transitionDelay: `${i * 100}ms`,
+                      opacity: productsReveal.visible ? 1 : 0,
+                      transform: productsReveal.visible ? 'translateY(0)' : 'translateY(20px)',
+                    }}
                   >
                     <Link to={`/product/${product.node.handle}`} className="block">
                       <div className="aspect-[3/4] overflow-hidden mb-4 bg-secondary relative">
@@ -141,24 +124,29 @@ const Index = () => {
                           <img
                             src={img.url}
                             alt={img.altText || product.node.title}
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                             loading="lazy"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
+                          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
                             No Image
                           </div>
                         )}
                       </div>
-                      <p className="product-title text-[10px] mb-1">{product.node.title}</p>
-                      <p className="product-price text-[10px]">
-                        {price.currencyCode} {parseFloat(price.amount).toFixed(2)}
+                      <p className="text-xs md:text-sm tracking-[0.15em] uppercase font-light text-muted-foreground mb-1">
+                        {product.node.vendor || "FLTHY MRKT"}
+                      </p>
+                      <p className="text-sm md:text-base tracking-[0.1em] font-light mb-1 leading-tight">
+                        {product.node.title}
+                      </p>
+                      <p className="text-xs md:text-sm tracking-[0.1em] font-light text-muted-foreground">
+                        ${parseFloat(price.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </p>
                     </Link>
                     <button
                       onClick={() => handleQuickAdd(product)}
                       disabled={isLoading}
-                      className="mt-2 w-full text-[9px] tracking-[0.2em] uppercase font-light border border-border py-2 hover:bg-foreground hover:text-background transition-all duration-300 opacity-0 group-hover:opacity-100"
+                      className="mt-3 w-full text-xs tracking-[0.2em] uppercase font-light border border-border py-3 hover:bg-foreground hover:text-background transition-all duration-300 opacity-0 group-hover:opacity-100"
                     >
                       Quick Add
                     </button>
@@ -166,10 +154,10 @@ const Index = () => {
                 );
               })}
             </div>
-            <div className="text-center mt-12">
+            <div className="text-center mt-14">
               <Link
                 to="/collection"
-                className="editorial-heading text-[10px] border border-foreground px-8 py-3 hover:bg-foreground hover:text-background transition-all duration-300"
+                className="text-sm tracking-[0.25em] uppercase font-light border border-foreground px-10 py-4 hover:bg-foreground hover:text-background transition-all duration-300"
               >
                 View All
               </Link>
@@ -178,62 +166,16 @@ const Index = () => {
         )}
       </section>
 
-      {/* Stories Section */}
-      {stories.length > 0 && (
-        <section
-          ref={storiesReveal.ref}
-          className={`border-t border-border py-16 md:py-24 transition-all duration-700 ${storiesReveal.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
-        >
-          <div className="max-w-[1400px] mx-auto px-4 md:px-6">
-            <h2 className="section-title">FlthyMrkt Presents</h2>
-            <p className="text-center text-[10px] text-muted-foreground tracking-[0.2em] font-light -mt-8 mb-12">
-              FASHION HISTORY · NEW STORIES EVERY WEEK
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {stories.map((story) => (
-                <Link key={story.id} to={`/stories?story=${story.id}`} className="group block">
-                  <div className="aspect-[4/3] overflow-hidden mb-4 bg-secondary">
-                    {story.image_url && (
-                      <img
-                        src={story.image_url}
-                        alt={story.title}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
-                      />
-                    )}
-                  </div>
-                  <h3 className="text-[11px] tracking-[0.2em] font-extralight uppercase group-hover:opacity-60 transition-opacity duration-300">
-                    {story.title}
-                  </h3>
-                  {story.publish_date && (
-                    <p className="text-[9px] text-muted-foreground tracking-widest mt-1">
-                      {new Date(story.publish_date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
-                    </p>
-                  )}
-                </Link>
-              ))}
-            </div>
-            <div className="text-center mt-12">
-              <Link
-                to="/stories"
-                className="editorial-heading text-[10px] border border-foreground px-8 py-3 hover:bg-foreground hover:text-background transition-all duration-300"
-              >
-                All Stories
-              </Link>
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* Newsletter / CTA Section */}
       <section
         ref={newsletterReveal.ref}
-        className={`border-t border-border py-16 md:py-24 transition-all duration-700 ${newsletterReveal.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
+        className={`border-t border-border py-20 md:py-28 transition-all duration-1000 ease-out ${newsletterReveal.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
       >
         <div className="max-w-xl mx-auto px-6 text-center">
           <h2 className="text-lg md:text-xl tracking-[0.3em] font-extralight uppercase mb-4">
             Everybody Can't Have Limited Items..
           </h2>
-          <p className="text-[10px] text-muted-foreground tracking-[0.2em] font-light mb-8 uppercase">
+          <p className="text-xs md:text-sm text-muted-foreground tracking-[0.2em] font-light mb-8 uppercase">
             Join our email list to find out about the new drop and never miss it again
           </p>
           <div className="flex border border-foreground max-w-md mx-auto">
@@ -242,11 +184,11 @@ const Index = () => {
               placeholder="YOUR EMAIL"
               value={newsletterEmail}
               onChange={(e) => setNewsletterEmail(e.target.value)}
-              className="flex-1 bg-transparent outline-none text-[10px] tracking-widest py-3 px-4 placeholder:text-muted-foreground"
+              className="flex-1 bg-transparent outline-none text-sm tracking-widest py-4 px-4 placeholder:text-muted-foreground"
             />
             <button
               onClick={handleNewsletter}
-              className="bg-foreground text-background px-6 py-3 editorial-heading text-[9px] hover:opacity-80 transition-opacity"
+              className="bg-foreground text-background px-8 py-4 text-sm tracking-[0.2em] uppercase font-light hover:opacity-80 transition-opacity"
             >
               Subscribe
             </button>

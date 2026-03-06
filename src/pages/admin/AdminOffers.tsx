@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "./AdminLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Send } from "lucide-react";
+import { Send, Clock, CheckCircle2, DollarSign, XCircle, Link as LinkIcon } from "lucide-react";
 import logo from "@/assets/logo.png";
 
 interface Offer {
@@ -14,6 +14,8 @@ interface Offer {
   created_at: string | null;
   product_id: string;
   user_id: string;
+  checkout_url: string | null;
+  expires_at: string | null;
   products?: { name: string; price: number } | null;
   profiles?: { email: string | null; name: string | null } | null;
 }
@@ -26,10 +28,17 @@ interface ChatMessage {
 }
 
 const statusColors: Record<string, string> = {
-  pending: "text-yellow-600",
-  countered: "text-blue-600",
-  accepted: "text-green-600",
-  declined: "text-destructive",
+  pending: "text-yellow-600 bg-yellow-50",
+  countered: "text-blue-600 bg-blue-50",
+  accepted: "text-green-600 bg-green-50",
+  declined: "text-red-600 bg-red-50",
+};
+
+const statusIcons: Record<string, any> = {
+  pending: Clock,
+  countered: DollarSign,
+  accepted: CheckCircle2,
+  declined: XCircle,
 };
 
 const AdminOffers = () => {
@@ -39,6 +48,7 @@ const AdminOffers = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [counterPrice, setCounterPrice] = useState("");
+  const [checkoutUrl, setCheckoutUrl] = useState("");
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -54,6 +64,7 @@ const AdminOffers = () => {
 
   const openChat = async (offer: Offer) => {
     setSelectedOffer(offer);
+    setCheckoutUrl(offer.checkout_url || "");
     const { data } = await supabase
       .from("chat_messages")
       .select("*")
@@ -61,7 +72,6 @@ const AdminOffers = () => {
       .order("created_at", { ascending: true });
     if (data) setMessages(data);
 
-    // Subscribe to realtime
     const channel = supabase
       .channel(`offer-${offer.id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages", filter: `offer_id=eq.${offer.id}` },
@@ -85,19 +95,23 @@ const AdminOffers = () => {
     if (!selectedOffer) return;
 
     if (action === "accept") {
+      const finalPrice = selectedOffer.counter_price || selectedOffer.offered_price;
       await supabase.from("offers").update({ status: "accepted" }).eq("id", selectedOffer.id);
       await supabase.from("chat_messages").insert({
         offer_id: selectedOffer.id, sender_id: user!.id,
-        message: `Offer accepted at $${selectedOffer.counter_price || selectedOffer.offered_price}. A checkout link will be generated.`,
+        message: `✅ Offer accepted at $${finalPrice.toLocaleString()}. ${checkoutUrl ? "A checkout link has been provided." : "A checkout link will be sent shortly."}`,
       });
+      if (checkoutUrl) {
+        await supabase.from("offers").update({ checkout_url: checkoutUrl }).eq("id", selectedOffer.id);
+      }
       toast({ title: "Offer accepted" });
     } else if (action === "counter") {
       const price = parseFloat(counterPrice);
-      if (isNaN(price)) return;
+      if (isNaN(price) || price <= 0) { toast({ title: "Enter a valid counter price", variant: "destructive" }); return; }
       await supabase.from("offers").update({ status: "countered", counter_price: price }).eq("id", selectedOffer.id);
       await supabase.from("chat_messages").insert({
         offer_id: selectedOffer.id, sender_id: user!.id,
-        message: `Counter offer: $${price.toLocaleString()}`,
+        message: `💰 Counter offer: $${price.toLocaleString()}`,
       });
       setCounterPrice("");
       toast({ title: "Counter offer sent" });
@@ -105,7 +119,7 @@ const AdminOffers = () => {
       await supabase.from("offers").update({ status: "declined" }).eq("id", selectedOffer.id);
       await supabase.from("chat_messages").insert({
         offer_id: selectedOffer.id, sender_id: user!.id,
-        message: "Offer declined.",
+        message: "❌ Offer declined.",
       });
       toast({ title: "Offer declined" });
     }
@@ -113,120 +127,164 @@ const AdminOffers = () => {
     openChat({ ...selectedOffer, status: action === "counter" ? "countered" : action === "accept" ? "accepted" : "declined" });
   };
 
+  const handleSendCheckoutLink = async () => {
+    if (!checkoutUrl.trim() || !selectedOffer) return;
+    await supabase.from("offers").update({ checkout_url: checkoutUrl, status: "accepted" }).eq("id", selectedOffer.id);
+    await supabase.from("chat_messages").insert({
+      offer_id: selectedOffer.id, sender_id: user!.id,
+      message: `🔗 Here's your checkout link: ${checkoutUrl}`,
+    });
+    toast({ title: "Checkout link sent to customer" });
+    fetchOffers();
+  };
+
   const filtered = statusFilter === "all" ? offers : offers.filter((o) => o.status === statusFilter);
 
   if (selectedOffer) {
+    const StatusIcon = statusIcons[selectedOffer.status || "pending"] || Clock;
     return (
       <AdminLayout>
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-[14px] tracking-[0.3em] uppercase font-extralight">Offer Chat</h1>
-          <button onClick={() => setSelectedOffer(null)} className="nav-link text-[9px] text-muted-foreground">← Back</button>
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-base tracking-[0.3em] uppercase font-extralight">Offer Negotiation</h1>
+          <button onClick={() => setSelectedOffer(null)} className="text-xs tracking-[0.15em] uppercase text-muted-foreground hover:opacity-50 transition-opacity">← Back</button>
         </div>
 
         {/* Product Info */}
-        <div className="border border-border p-4 mb-4 flex justify-between items-center">
+        <div className="border border-border p-5 mb-5 flex flex-wrap justify-between items-center gap-4">
           <div>
-            <p className="text-[11px] font-light">{(selectedOffer.products as any)?.name}</p>
-            <p className="text-[10px] text-muted-foreground">Listed: ${(selectedOffer.products as any)?.price?.toLocaleString()}</p>
+            <p className="text-sm font-light">{(selectedOffer.products as any)?.name}</p>
+            <p className="text-xs text-muted-foreground mt-1">Listed: ${(selectedOffer.products as any)?.price?.toLocaleString()}</p>
           </div>
-          <div className="text-right">
-            <p className="text-[10px] text-muted-foreground">Offered: ${selectedOffer.offered_price.toLocaleString()}</p>
-            <p className={`text-[10px] tracking-widest uppercase ${statusColors[selectedOffer.status || "pending"]}`}>
+          <div className="text-right space-y-1">
+            <p className="text-xs text-muted-foreground">Offered: ${selectedOffer.offered_price.toLocaleString()}</p>
+            {selectedOffer.counter_price && <p className="text-xs text-blue-600">Counter: ${selectedOffer.counter_price.toLocaleString()}</p>}
+            <p className={`text-xs tracking-widest uppercase px-3 py-1 inline-block ${statusColors[selectedOffer.status || "pending"]}`}>
+              <StatusIcon className="w-3 h-3 inline mr-1" />
               {selectedOffer.status}
             </p>
           </div>
         </div>
 
         {/* Chat Messages */}
-        <div className="border border-border h-[400px] overflow-y-auto p-4 space-y-4 mb-4">
+        <div className="border border-border h-[400px] overflow-y-auto p-5 space-y-4 mb-5">
+          {messages.length === 0 && (
+            <p className="text-center text-muted-foreground text-xs py-8">No messages yet.</p>
+          )}
           {messages.map((m) => {
             const isAdmin = m.sender_id === user?.id;
             return (
               <div key={m.id} className={`flex gap-3 ${isAdmin ? "justify-end" : ""}`}>
-                {!isAdmin && <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[8px]">C</div>}
-                <div className={`max-w-[70%] p-3 ${isAdmin ? "bg-foreground text-background" : "bg-muted"}`}>
-                  <p className="text-[11px] font-light">{m.message}</p>
-                  <p className="text-[8px] opacity-50 mt-1">
+                {!isAdmin && <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-xs flex-shrink-0">C</div>}
+                <div className={`max-w-[70%] p-4 ${isAdmin ? "bg-foreground text-background" : "bg-muted"}`}>
+                  <p className="text-sm font-light leading-relaxed">{m.message}</p>
+                  <p className="text-[9px] opacity-50 mt-2">
                     {m.created_at ? new Date(m.created_at).toLocaleTimeString() : ""}
                   </p>
                 </div>
-                {isAdmin && <img src={logo} alt="Admin" className="w-6 h-6 object-contain" />}
+                {isAdmin && <img src={logo} alt="Admin" className="w-7 h-7 object-contain flex-shrink-0 mt-1" />}
               </div>
             );
           })}
         </div>
 
         {/* Actions */}
-        {selectedOffer.status === "pending" || selectedOffer.status === "countered" ? (
-          <div className="space-y-3">
-            <div className="flex gap-2">
-              <input value={newMessage} onChange={(e) => setNewMessage(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-                placeholder="Type a message..."
-                className="flex-1 border border-border bg-transparent px-3 py-2 text-[11px] outline-none" />
-              <button onClick={sendMessage} className="bg-primary text-primary-foreground px-4 py-2 min-h-[40px]">
-                <Send className="w-3 h-3" />
-              </button>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => handleAction("accept")}
-                className="bg-foreground text-background px-4 py-2 text-[10px] tracking-widest uppercase min-h-[40px]">Accept</button>
-              <div className="flex gap-1">
-                <input value={counterPrice} onChange={(e) => setCounterPrice(e.target.value)}
-                  placeholder="Counter $" className="border border-border bg-transparent px-2 py-2 text-[11px] outline-none w-24" />
-                <button onClick={() => handleAction("counter")}
-                  className="border border-border px-4 py-2 text-[10px] tracking-widest uppercase hover:border-foreground min-h-[40px]">Counter</button>
-              </div>
-              <button onClick={() => handleAction("decline")}
-                className="border border-destructive text-destructive px-4 py-2 text-[10px] tracking-widest uppercase min-h-[40px]">Decline</button>
-            </div>
-          </div>
-        ) : (
+        <div className="space-y-4">
+          {/* Message input always visible */}
           <div className="flex gap-2">
             <input value={newMessage} onChange={(e) => setNewMessage(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendMessage()}
               placeholder="Type a message..."
-              className="flex-1 border border-border bg-transparent px-3 py-2 text-[11px] outline-none" />
-            <button onClick={sendMessage} className="bg-primary text-primary-foreground px-4 py-2 min-h-[40px]">
-              <Send className="w-3 h-3" />
+              className="flex-1 border border-border bg-transparent px-4 py-3 text-sm outline-none focus:border-foreground transition-colors" />
+            <button onClick={sendMessage} className="bg-primary text-primary-foreground px-5 py-3 min-h-[48px] hover:opacity-80 transition-opacity">
+              <Send className="w-4 h-4" />
             </button>
           </div>
-        )}
+
+          {/* Action buttons for pending/countered */}
+          {(selectedOffer.status === "pending" || selectedOffer.status === "countered") && (
+            <div className="flex flex-wrap gap-3 items-end">
+              <button onClick={() => handleAction("accept")}
+                className="bg-foreground text-background px-6 py-3 text-xs tracking-[0.2em] uppercase font-light min-h-[48px] hover:opacity-80 transition-opacity flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4" /> Accept
+              </button>
+              <div className="flex gap-2">
+                <input value={counterPrice} onChange={(e) => setCounterPrice(e.target.value)}
+                  placeholder="Counter $" className="border border-border bg-transparent px-3 py-3 text-sm outline-none w-28 focus:border-foreground transition-colors" />
+                <button onClick={() => handleAction("counter")}
+                  className="border border-border px-5 py-3 text-xs tracking-[0.2em] uppercase font-light hover:border-foreground min-h-[48px] transition-all flex items-center gap-2">
+                  <DollarSign className="w-4 h-4" /> Counter
+                </button>
+              </div>
+              <button onClick={() => handleAction("decline")}
+                className="border border-destructive text-destructive px-5 py-3 text-xs tracking-[0.2em] uppercase font-light min-h-[48px] hover:bg-destructive hover:text-destructive-foreground transition-all flex items-center gap-2">
+                <XCircle className="w-4 h-4" /> Decline
+              </button>
+            </div>
+          )}
+
+          {/* Checkout URL for accepted offers */}
+          {selectedOffer.status === "accepted" && (
+            <div className="border border-green-200 bg-green-50/50 p-5 space-y-3">
+              <p className="text-sm font-light flex items-center gap-2"><LinkIcon className="w-4 h-4" /> Send checkout link to customer</p>
+              <div className="flex gap-2">
+                <input value={checkoutUrl} onChange={(e) => setCheckoutUrl(e.target.value)}
+                  placeholder="Paste checkout URL..." className="flex-1 border border-border bg-transparent px-3 py-3 text-sm outline-none focus:border-foreground transition-colors" />
+                <button onClick={handleSendCheckoutLink}
+                  className="bg-foreground text-background px-5 py-3 text-xs tracking-[0.2em] uppercase font-light min-h-[48px] hover:opacity-80 transition-opacity">
+                  Send Link
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </AdminLayout>
     );
   }
 
   return (
     <AdminLayout>
-      <h1 className="text-[14px] tracking-[0.3em] uppercase font-extralight mb-8">Offers</h1>
+      <h1 className="text-base tracking-[0.3em] uppercase font-extralight mb-8">Offers</h1>
 
-      <div className="flex gap-2 mb-6">
-        {["all", "pending", "countered", "accepted", "declined"].map((s) => (
-          <button key={s} onClick={() => setStatusFilter(s)}
-            className={`px-4 py-2 text-[9px] tracking-widest uppercase border transition-all ${
-              statusFilter === s ? "bg-foreground text-background border-foreground" : "border-border hover:border-foreground"
-            }`}>
-            {s}
-          </button>
-        ))}
+      <div className="flex flex-wrap gap-2 mb-8">
+        {["all", "pending", "countered", "accepted", "declined"].map((s) => {
+          const Icon = statusIcons[s] || null;
+          return (
+            <button key={s} onClick={() => setStatusFilter(s)}
+              className={`px-5 py-3 text-xs tracking-widest uppercase border transition-all flex items-center gap-2 ${
+                statusFilter === s ? "bg-foreground text-background border-foreground" : "border-border hover:border-foreground"
+              }`}>
+              {Icon && <Icon className="w-3 h-3" />}
+              {s}
+            </button>
+          );
+        })}
       </div>
 
       <div className="border border-border">
-        <div className="grid grid-cols-[1fr_120px_100px_80px] gap-4 px-6 py-3 border-b border-border bg-muted">
-          <span className="text-[9px] tracking-widest uppercase text-muted-foreground">Product</span>
-          <span className="text-[9px] tracking-widest uppercase text-muted-foreground">Offered</span>
-          <span className="text-[9px] tracking-widest uppercase text-muted-foreground">Status</span>
-          <span className="text-[9px] tracking-widest uppercase text-muted-foreground">Chat</span>
+        <div className="grid grid-cols-[1fr_120px_120px_80px] gap-4 px-6 py-4 border-b border-border bg-muted">
+          <span className="text-xs tracking-widest uppercase text-muted-foreground">Product</span>
+          <span className="text-xs tracking-widest uppercase text-muted-foreground">Offered</span>
+          <span className="text-xs tracking-widest uppercase text-muted-foreground">Status</span>
+          <span className="text-xs tracking-widest uppercase text-muted-foreground">Action</span>
         </div>
-        {filtered.map((o) => (
-          <div key={o.id} className="grid grid-cols-[1fr_120px_100px_80px] gap-4 px-6 py-4 border-b border-border last:border-b-0 items-center">
-            <span className="text-[11px] font-light">{(o.products as any)?.name || "—"}</span>
-            <span className="text-[11px] font-light">${o.offered_price.toLocaleString()}</span>
-            <span className={`text-[10px] tracking-widest uppercase ${statusColors[o.status || "pending"]}`}>{o.status}</span>
-            <button onClick={() => openChat(o)} className="nav-link text-[9px]">View</button>
-          </div>
-        ))}
-        {filtered.length === 0 && <p className="px-6 py-8 text-center text-muted-foreground text-xs tracking-widest uppercase">No offers</p>}
+        {filtered.map((o) => {
+          const StatusIcon = statusIcons[o.status || "pending"] || Clock;
+          return (
+            <div key={o.id} className="grid grid-cols-[1fr_120px_120px_80px] gap-4 px-6 py-5 border-b border-border last:border-b-0 items-center hover:bg-muted/30 transition-colors">
+              <div>
+                <span className="text-sm font-light">{(o.products as any)?.name || "—"}</span>
+                {o.counter_price && <p className="text-xs text-blue-600 mt-0.5">Counter: ${o.counter_price.toLocaleString()}</p>}
+              </div>
+              <span className="text-sm font-light">${o.offered_price.toLocaleString()}</span>
+              <span className={`text-xs tracking-widest uppercase inline-flex items-center gap-1 ${statusColors[o.status || "pending"]} px-2 py-1 w-fit`}>
+                <StatusIcon className="w-3 h-3" />
+                {o.status}
+              </span>
+              <button onClick={() => openChat(o)} className="text-xs tracking-[0.15em] uppercase hover:opacity-50 transition-opacity">View</button>
+            </div>
+          );
+        })}
+        {filtered.length === 0 && <p className="px-6 py-10 text-center text-muted-foreground text-sm tracking-widest uppercase">No offers</p>}
       </div>
     </AdminLayout>
   );

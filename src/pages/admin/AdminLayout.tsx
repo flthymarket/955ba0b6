@@ -3,15 +3,14 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Menu, X } from "lucide-react";
 import {
-  LayoutDashboard, Package, Tags, BookOpen, MessageSquare,
-  ShoppingCart, Users, Mail, Settings, Percent, Megaphone,
+  LayoutDashboard, Package, Tags, MessageSquare,
+  ShoppingCart, Users, Mail, Settings, Percent,
 } from "lucide-react";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
   { label: "Products", icon: Package, href: "/admin/products" },
   { label: "Brands", icon: Tags, href: "/admin/brands" },
-  { label: "Stories", icon: BookOpen, href: "/admin/stories" },
   { label: "Discounts", icon: Percent, href: "/admin/discounts" },
   { label: "Offers", icon: MessageSquare, href: "/admin/offers" },
   { label: "Orders", icon: ShoppingCart, href: "/admin/orders" },
@@ -33,7 +32,7 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p className="text-muted-foreground text-xs tracking-widest uppercase">Loading...</p>
+        <p className="text-muted-foreground text-sm tracking-widest uppercase">Loading...</p>
       </div>
     );
   }
@@ -43,12 +42,12 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
   return (
     <div className="flex min-h-screen">
       {/* Desktop Sidebar */}
-      <aside className="w-60 border-r border-border bg-background fixed top-0 left-0 bottom-0 z-40 hidden lg:flex flex-col">
+      <aside className="w-64 border-r border-border bg-background fixed top-0 left-0 bottom-0 z-40 hidden lg:flex flex-col">
         <div className="p-6 border-b border-border">
-          <Link to="/" className="text-[10px] tracking-[0.2em] uppercase font-light text-muted-foreground hover:text-foreground transition-colors duration-150">
+          <Link to="/" className="text-xs tracking-[0.2em] uppercase font-light text-muted-foreground hover:text-foreground transition-colors duration-150">
             ← Back to Store
           </Link>
-          <h2 className="text-[12px] tracking-[0.25em] uppercase font-light mt-3">Admin</h2>
+          <h2 className="text-sm tracking-[0.25em] uppercase font-light mt-3">Admin</h2>
         </div>
         <nav className="flex-1 py-4">
           {navItems.map((item) => {
@@ -57,7 +56,7 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
               <Link
                 key={item.href}
                 to={item.href}
-                className={`flex items-center gap-3 px-6 py-3 text-[10px] tracking-[0.15em] uppercase font-light transition-all duration-150 ${
+                className={`flex items-center gap-3 px-6 py-3.5 text-xs tracking-[0.15em] uppercase font-light transition-all duration-150 ${
                   active
                     ? "bg-foreground text-background"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -72,29 +71,29 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
       </aside>
 
       {/* Mobile top bar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-background border-b border-border z-40 flex items-center px-4">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-background border-b border-border z-40 flex items-center px-4">
         <button onClick={() => setMobileNavOpen(!mobileNavOpen)}>
-          {mobileNavOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          {mobileNavOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
-        <span className="text-[11px] tracking-[0.2em] uppercase font-light mx-auto">Admin</span>
+        <span className="text-sm tracking-[0.2em] uppercase font-light mx-auto">Admin</span>
       </div>
 
       {/* Mobile drawer */}
       {mobileNavOpen && (
         <>
           <div className="fixed inset-0 bg-foreground/40 z-40 lg:hidden" onClick={() => setMobileNavOpen(false)} />
-          <aside className="fixed top-0 left-0 bottom-0 w-[80%] max-w-[300px] bg-background z-50 lg:hidden animate-slide-in-right flex flex-col">
+          <aside className="fixed top-0 left-0 bottom-0 w-[80%] max-w-[320px] bg-background z-50 lg:hidden animate-slide-in-right flex flex-col">
             <div className="p-6 border-b border-border">
-              <Link to="/" className="text-[10px] tracking-[0.2em] uppercase font-light text-muted-foreground">← Back to Store</Link>
-              <h2 className="text-[12px] tracking-[0.25em] uppercase font-light mt-3">Admin</h2>
+              <Link to="/" className="text-xs tracking-[0.2em] uppercase font-light text-muted-foreground">← Back to Store</Link>
+              <h2 className="text-sm tracking-[0.25em] uppercase font-light mt-3">Admin</h2>
             </div>
             <nav className="flex-1 py-4">
               {navItems.map((item) => {
                 const active = location.pathname === item.href;
                 return (
                   <Link key={item.href} to={item.href} onClick={() => setMobileNavOpen(false)}
-                    className={`flex items-center gap-3 px-6 py-3 text-[10px] tracking-[0.15em] uppercase font-light transition-all duration-150 ${
-                      active ? "border-l-2 border-l-[hsl(352,82%,38%)] bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+                    className={`flex items-center gap-3 px-6 py-3.5 text-xs tracking-[0.15em] uppercase font-light transition-all duration-150 ${
+                      active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
                     }`}>
                     <item.icon className="w-4 h-4" />
                     {item.label}
@@ -107,7 +106,7 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
       )}
 
       {/* Main content */}
-      <main className="flex-1 lg:ml-60 p-8 pt-20 lg:pt-8">
+      <main className="flex-1 lg:ml-64 p-6 md:p-10 pt-24 lg:pt-10">
         {children}
       </main>
     </div>

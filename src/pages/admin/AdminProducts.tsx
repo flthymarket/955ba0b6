@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "./AdminLayout";
 import ImageUpload from "@/components/ImageUpload";
-import { Plus, Pencil, Trash2, Search, Check } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Check, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const allCategories = ["All", "Tops", "Bottoms", "Outerwear", "Accessories", "Bags", "Jewelry", "Dresses"];
+const allCategories = ["Tops", "Bottoms", "Outerwear", "Accessories", "Bags", "Jewelry", "Dresses"];
 const conditionLevels = ["Fair", "Good", "Great", "Excellent", "Pristine"];
 
 interface Product {
@@ -26,7 +26,7 @@ const AdminProducts = () => {
   const { toast } = useToast();
 
   const [form, setForm] = useState({
-    name: "", brand_id: "", category: "All", price: "", sku: "",
+    name: "", brand_id: "", category: "Tops", price: "", sku: "",
     description: "", condition: "Good", color: "", material: "",
     featured: false, condition_description: "",
     discount_enabled: false, discount_type: "percentage", discount_value: "",
@@ -125,7 +125,7 @@ const AdminProducts = () => {
   };
 
   const resetForm = () => {
-    setForm({ name: "", brand_id: "", category: "All", price: "", sku: "", description: "", condition: "Good", color: "", material: "", featured: false, condition_description: "", discount_enabled: false, discount_type: "percentage", discount_value: "", discount_start: "", discount_end: "", is_flash_sale: false });
+    setForm({ name: "", brand_id: "", category: "Tops", price: "", sku: "", description: "", condition: "Good", color: "", material: "", featured: false, condition_description: "", discount_enabled: false, discount_type: "percentage", discount_value: "", discount_start: "", discount_end: "", is_flash_sale: false });
     setVariants([{ size: "", quantity: "1" }]);
     setProductImages([]);
     setEditing(null);
@@ -134,30 +134,38 @@ const AdminProducts = () => {
 
   const filtered = products.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
 
-  const inputCls = "w-full border border-border bg-transparent px-3 py-2.5 text-[11px] outline-none focus:border-foreground transition-colors duration-150";
-  const labelCls = "text-[9px] tracking-widest uppercase text-muted-foreground block mb-1";
-  const toggleCls = (on: boolean) => `relative w-10 h-5 rounded-full transition-colors duration-150 cursor-pointer ${on ? "bg-[hsl(352,82%,38%)]" : "bg-border"}`;
-  const knobCls = (on: boolean) => `absolute top-0.5 w-4 h-4 rounded-full bg-background transition-transform duration-150 ${on ? "translate-x-5" : "translate-x-0.5"}`;
+  const inputCls = "w-full border border-border bg-transparent px-4 py-3 text-sm outline-none focus:border-foreground transition-colors duration-150";
+  const labelCls = "text-xs tracking-widest uppercase text-muted-foreground block mb-2";
+  const toggleCls = (on: boolean) => `relative w-11 h-6 rounded-full transition-colors duration-150 cursor-pointer ${on ? "bg-foreground" : "bg-border"}`;
+  const knobCls = (on: boolean) => `absolute top-0.5 w-5 h-5 rounded-full bg-background transition-transform duration-150 ${on ? "translate-x-5" : "translate-x-0.5"}`;
 
   if (showForm) {
     return (
       <AdminLayout>
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-[13px] tracking-[0.3em] uppercase font-extralight">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-base tracking-[0.3em] uppercase font-extralight">
             {editing ? "Edit Product" : "Add Product"}
           </h1>
-          <button onClick={resetForm} className="nav-link text-[9px] text-muted-foreground">← Back</button>
+          <button onClick={resetForm} className="text-xs tracking-[0.15em] uppercase text-muted-foreground hover:opacity-50 transition-opacity">← Back</button>
         </div>
 
-        <form onSubmit={handleSave} className="max-w-2xl space-y-6">
+        {/* Shopify Notice */}
+        <div className="bg-muted/50 border border-border p-4 mb-8 flex items-start gap-3">
+          <Info className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-muted-foreground font-light leading-relaxed">
+            Products are managed through Shopify. Use this form for internal tracking. To add products for sale, import them through your Shopify admin dashboard.
+          </p>
+        </div>
+
+        <form onSubmit={handleSave} className="max-w-2xl space-y-8">
           {/* General */}
-          <div className="border border-border p-5 space-y-3">
-            <h3 className="editorial-heading text-[10px] mb-3">General</h3>
+          <div className="border border-border p-6 space-y-4">
+            <h3 className="text-sm tracking-[0.2em] uppercase font-light mb-4">General</h3>
             <div>
               <label className={labelCls}>Product Name *</label>
               <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className={inputCls} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className={labelCls}>Brand</label>
                 <select value={form.brand_id} onChange={(e) => setForm({ ...form, brand_id: e.target.value })} className={inputCls}>
@@ -166,13 +174,13 @@ const AdminProducts = () => {
                 </select>
               </div>
               <div>
-                <label className={labelCls}>Category</label>
+                <label className={labelCls}>Category *</label>
                 <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className={inputCls}>
                   {allCategories.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className={labelCls}>Price *</label>
                 <input type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required className={inputCls} />
@@ -185,21 +193,16 @@ const AdminProducts = () => {
           </div>
 
           {/* Pricing & Discount */}
-          <div className={`border p-5 space-y-3 transition-all duration-150 ${form.discount_enabled ? "border-l-2 border-l-[hsl(352,82%,38%)] border-border" : "border-border"}`}>
+          <div className={`border p-6 space-y-4 transition-all duration-150 ${form.discount_enabled ? "border-l-2 border-l-foreground border-border" : "border-border"}`}>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <h3 className="editorial-heading text-[10px]">Discount Settings</h3>
-                {form.discount_enabled && form.is_flash_sale && (
-                  <span className="text-[9px] tracking-[0.1em] uppercase font-light px-2 py-0.5 border border-[hsl(352,82%,38%)] text-[hsl(352,82%,38%)] rounded-full">Flash Active</span>
-                )}
-              </div>
+              <h3 className="text-sm tracking-[0.2em] uppercase font-light">Discount Settings</h3>
               <button type="button" onClick={() => setForm({ ...form, discount_enabled: !form.discount_enabled })} className={toggleCls(form.discount_enabled)}>
                 <div className={knobCls(form.discount_enabled)} />
               </button>
             </div>
             {form.discount_enabled && (
-              <div className="space-y-3 animate-fade-in">
-                <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-4 animate-fade-in">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className={labelCls}>Discount Type</label>
                     <select value={form.discount_type} onChange={(e) => setForm({ ...form, discount_type: e.target.value })} className={inputCls}>
@@ -215,7 +218,7 @@ const AdminProducts = () => {
                       placeholder={form.discount_type === "percentage" ? "25" : "50.00"} />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className={labelCls}>Start Date</label>
                     <input type="datetime-local" value={form.discount_start} onChange={(e) => setForm({ ...form, discount_start: e.target.value })} className={inputCls} />
@@ -229,15 +232,15 @@ const AdminProducts = () => {
                   <button type="button" onClick={() => setForm({ ...form, is_flash_sale: !form.is_flash_sale })} className={toggleCls(form.is_flash_sale)}>
                     <div className={knobCls(form.is_flash_sale)} />
                   </button>
-                  <span className="text-[10px] tracking-widest uppercase">Flash Sale</span>
+                  <span className="text-sm tracking-widest uppercase">Flash Sale</span>
                 </label>
               </div>
             )}
           </div>
 
           {/* Media */}
-          <div className="border border-border p-5 space-y-3">
-            <h3 className="editorial-heading text-[10px] mb-3">Media</h3>
+          <div className="border border-border p-6 space-y-4">
+            <h3 className="text-sm tracking-[0.2em] uppercase font-light mb-4">Media</h3>
             <div className="grid grid-cols-4 gap-3">
               {productImages.map((url, i) => (
                 <ImageUpload key={i} bucket="product-images" currentUrl={url}
@@ -254,34 +257,34 @@ const AdminProducts = () => {
           </div>
 
           {/* Inventory */}
-          <div className="border border-border p-5 space-y-3">
-            <h3 className="editorial-heading text-[10px] mb-3">Inventory</h3>
+          <div className="border border-border p-6 space-y-4">
+            <h3 className="text-sm tracking-[0.2em] uppercase font-light mb-4">Inventory</h3>
             {variants.map((v, i) => (
-              <div key={i} className="flex gap-3 items-end">
+              <div key={i} className="flex gap-4 items-end">
                 <div className="flex-1">
                   <label className={labelCls}>Size</label>
                   <input value={v.size} onChange={(e) => { const n = [...variants]; n[i].size = e.target.value; setVariants(n); }} className={inputCls} />
                 </div>
-                <div className="w-20">
+                <div className="w-24">
                   <label className={labelCls}>Qty</label>
                   <input type="number" min="0" value={v.quantity} onChange={(e) => { const n = [...variants]; n[i].quantity = e.target.value; setVariants(n); }} className={inputCls} />
                 </div>
                 {variants.length > 1 && (
                   <button type="button" onClick={() => setVariants(variants.filter((_, j) => j !== i))}
-                    className="text-muted-foreground hover:text-foreground pb-2"><Trash2 className="w-3 h-3" /></button>
+                    className="text-muted-foreground hover:text-foreground pb-3"><Trash2 className="w-4 h-4" /></button>
                 )}
               </div>
             ))}
             <button type="button" onClick={() => setVariants([...variants, { size: "", quantity: "1" }])}
-              className="nav-link text-[9px] text-muted-foreground flex items-center gap-1">
-              <Plus className="w-3 h-3" /> Add Size
+              className="text-xs tracking-[0.15em] uppercase text-muted-foreground flex items-center gap-2 hover:opacity-50 transition-opacity">
+              <Plus className="w-4 h-4" /> Add Size
             </button>
           </div>
 
           {/* Details */}
-          <div className="border border-border p-5 space-y-3">
-            <h3 className="editorial-heading text-[10px] mb-3">Details</h3>
-            <div className="grid grid-cols-2 gap-3">
+          <div className="border border-border p-6 space-y-4">
+            <h3 className="text-sm tracking-[0.2em] uppercase font-light mb-4">Details</h3>
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className={labelCls}>Color</label>
                 <input value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} className={inputCls} />
@@ -300,29 +303,29 @@ const AdminProducts = () => {
             <div>
               <label className={labelCls}>Condition Description</label>
               <textarea value={form.condition_description} onChange={(e) => setForm({ ...form, condition_description: e.target.value })}
-                className={`${inputCls} min-h-[60px] resize-none`} placeholder="Describe specific wear, flaws, or highlights..." />
+                className={`${inputCls} min-h-[80px] resize-none`} placeholder="Describe specific wear, flaws, or highlights..." />
             </div>
             <div>
               <label className={labelCls}>Description</label>
               <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
-                className={`${inputCls} min-h-[80px] resize-none`} />
+                className={`${inputCls} min-h-[100px] resize-none`} />
             </div>
             <label className="flex items-center gap-3 cursor-pointer">
-              <div className={`w-4 h-4 border flex items-center justify-center transition-all duration-150 ${
+              <div className={`w-5 h-5 border flex items-center justify-center transition-all duration-150 ${
                 form.featured ? "bg-foreground border-foreground" : "border-foreground"
               }`} onClick={() => setForm({ ...form, featured: !form.featured })}>
                 {form.featured && <Check className="w-3 h-3 text-background" />}
               </div>
-              <span className="text-[10px] tracking-widest uppercase">Featured Product</span>
+              <span className="text-sm tracking-widest uppercase">Featured Product</span>
             </label>
           </div>
 
           {/* Save */}
-          <div className="flex gap-3 lg:static fixed bottom-0 left-0 right-0 bg-background border-t border-border lg:border-0 p-4 lg:p-0 z-30">
-            <button type="submit" className="flex-1 lg:flex-none bg-primary text-primary-foreground px-8 py-3 editorial-heading text-[10px] hover:opacity-80 transition-opacity duration-150 min-h-[44px]">
+          <div className="flex gap-4 lg:static fixed bottom-0 left-0 right-0 bg-background border-t border-border lg:border-0 p-4 lg:p-0 z-30">
+            <button type="submit" className="flex-1 lg:flex-none bg-primary text-primary-foreground px-10 py-4 text-sm tracking-[0.15em] uppercase font-light hover:opacity-80 transition-opacity duration-150 min-h-[52px]">
               {editing ? "Update Product" : "Create Product"}
             </button>
-            <button type="button" onClick={resetForm} className="flex-1 lg:flex-none border border-border px-8 py-3 editorial-heading text-[10px] hover:border-foreground transition-all duration-150 min-h-[44px]">
+            <button type="button" onClick={resetForm} className="flex-1 lg:flex-none border border-border px-10 py-4 text-sm tracking-[0.15em] uppercase font-light hover:border-foreground transition-all duration-150 min-h-[52px]">
               Cancel
             </button>
           </div>
@@ -333,45 +336,52 @@ const AdminProducts = () => {
 
   return (
     <AdminLayout>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-[13px] tracking-[0.3em] uppercase font-extralight">Products</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-base tracking-[0.3em] uppercase font-extralight">Products</h1>
         <button onClick={() => setShowForm(true)}
-          className="bg-primary text-primary-foreground px-5 py-2 editorial-heading text-[9px] flex items-center gap-2 hover:opacity-80 transition-opacity duration-150 min-h-[36px]">
-          <Plus className="w-3 h-3" /> Add
+          className="bg-primary text-primary-foreground px-6 py-3 text-xs tracking-[0.15em] uppercase font-light flex items-center gap-2 hover:opacity-80 transition-opacity duration-150 min-h-[44px]">
+          <Plus className="w-4 h-4" /> Add Product
         </button>
       </div>
 
-      <div className="flex items-center border border-border px-3 py-2 mb-6 max-w-md">
-        <Search className="w-3 h-3 text-muted-foreground mr-2" />
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search products..."
-          className="bg-transparent outline-none text-[11px] tracking-widest flex-1 placeholder:text-muted-foreground" />
+      {/* Shopify Notice */}
+      <div className="bg-muted/50 border border-border p-4 mb-8 flex items-start gap-3">
+        <Info className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+        <p className="text-xs text-muted-foreground font-light leading-relaxed">
+          Your storefront pulls products directly from Shopify. Use the Shopify admin to manage your product catalog. This page is for internal tracking only.
+        </p>
       </div>
 
-      <div className="border border-border overflow-x-auto">
-        <div className="min-w-[500px]">
-          <div className="grid grid-cols-[1fr_1fr_80px_80px_80px] gap-3 px-4 py-2.5 border-b border-border bg-muted">
-            <span className="text-[9px] tracking-widest uppercase text-muted-foreground">Name</span>
-            <span className="text-[9px] tracking-widest uppercase text-muted-foreground">Brand</span>
-            <span className="text-[9px] tracking-widest uppercase text-muted-foreground">Category</span>
-            <span className="text-[9px] tracking-widest uppercase text-muted-foreground">Price</span>
-            <span className="text-[9px] tracking-widest uppercase text-muted-foreground">Actions</span>
-          </div>
-          {filtered.map((p) => (
-            <div key={p.id} className="grid grid-cols-[1fr_1fr_80px_80px_80px] gap-3 px-4 py-3 border-b border-border last:border-b-0 items-center hover:bg-muted/50 transition-colors duration-150">
-              <span className="text-[11px] font-light truncate">{p.name}</span>
-              <span className="text-[11px] font-light text-muted-foreground truncate">{(p.brands as any)?.name || "—"}</span>
-              <span className="text-[9px] font-light text-muted-foreground">{p.category}</span>
-              <span className="text-[11px] font-light">${p.price.toLocaleString()}</span>
-              <div className="flex gap-3">
-                <button onClick={() => startEdit(p.id)} className="text-muted-foreground hover:text-foreground transition-colors duration-150"><Pencil className="w-3 h-3" /></button>
-                <button onClick={() => handleDelete(p.id)} className="text-muted-foreground hover:text-destructive transition-colors duration-150"><Trash2 className="w-3 h-3" /></button>
-              </div>
-            </div>
-          ))}
-          {filtered.length === 0 && (
-            <p className="px-4 py-8 text-center text-muted-foreground text-xs tracking-widest uppercase">No products</p>
-          )}
+      <div className="mb-6">
+        <div className="flex items-center border border-border px-4">
+          <Search className="w-4 h-4 text-muted-foreground" />
+          <input placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)}
+            className="flex-1 bg-transparent outline-none text-sm py-3 px-3" />
         </div>
+      </div>
+
+      <div className="border border-border">
+        <div className="grid grid-cols-[1fr_100px_100px_80px] gap-4 px-6 py-4 border-b border-border bg-muted">
+          <span className="text-xs tracking-widest uppercase text-muted-foreground">Product</span>
+          <span className="text-xs tracking-widest uppercase text-muted-foreground">Category</span>
+          <span className="text-xs tracking-widest uppercase text-muted-foreground">Price</span>
+          <span className="text-xs tracking-widest uppercase text-muted-foreground">Actions</span>
+        </div>
+        {filtered.map((p) => (
+          <div key={p.id} className="grid grid-cols-[1fr_100px_100px_80px] gap-4 px-6 py-5 border-b border-border last:border-b-0 items-center hover:bg-muted/30 transition-colors">
+            <div>
+              <span className="text-sm font-light">{p.name}</span>
+              {p.brands && <span className="block text-xs text-muted-foreground mt-0.5">{(p.brands as any).name}</span>}
+            </div>
+            <span className="text-xs text-muted-foreground tracking-widest uppercase">{p.category}</span>
+            <span className="text-sm font-light">${p.price}</span>
+            <div className="flex gap-3">
+              <button onClick={() => startEdit(p.id)} className="text-muted-foreground hover:text-foreground"><Pencil className="w-4 h-4" /></button>
+              <button onClick={() => handleDelete(p.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
+            </div>
+          </div>
+        ))}
+        {filtered.length === 0 && <p className="px-6 py-10 text-center text-muted-foreground text-sm tracking-widest uppercase">No products</p>}
       </div>
     </AdminLayout>
   );
