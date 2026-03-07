@@ -84,31 +84,30 @@ const Collection = () => {
     : "All";
 
   return (
-    <main className="pt-32 md:pt-36 pb-24 animate-fade-in">
-      <div className="max-w-[1400px] mx-auto px-4 md:px-8">
-        <h1 className="text-lg md:text-xl tracking-[0.35em] font-extralight uppercase text-center mb-10">
+    <main className="pt-28 sm:pt-32 md:pt-36 pb-20 animate-fade-in">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8">
+        <h1 className="text-xl md:text-2xl tracking-[0.35em] font-extralight uppercase text-center mb-8 md:mb-10">
           {pageTitle}
         </h1>
 
         {/* Filters & Sort Bar */}
-        <div className="flex flex-wrap items-center justify-between mb-10 border-b border-border pb-4 gap-4">
-          <div className="flex items-center gap-6">
-            <span className="text-xs text-muted-foreground tracking-widest uppercase">{products.length} products</span>
+        <div className="flex flex-wrap items-center justify-between mb-8 md:mb-10 border-b border-border pb-4 gap-4">
+          <div className="flex items-center gap-4 md:gap-6">
+            <span className="text-xs sm:text-sm text-muted-foreground tracking-widest uppercase">{products.length} products</span>
 
-            {/* Category Filter */}
             <div className="relative">
-              <button onClick={() => setFilterOpen(!filterOpen)} className="text-xs tracking-[0.2em] uppercase font-light flex items-center gap-2 hover:opacity-50 transition-opacity">
+              <button onClick={() => setFilterOpen(!filterOpen)} className="text-sm tracking-[0.15em] uppercase font-light flex items-center gap-2 hover-gray px-2 py-1 transition-all">
                 Categories <ChevronDown className="w-3 h-3" />
               </button>
               {filterOpen && (
-                <div className="absolute left-0 top-full mt-2 bg-background border border-border py-3 px-5 min-w-[180px] z-10 animate-fade-in">
+                <div className="absolute left-0 top-full mt-2 bg-background border border-border py-3 px-5 min-w-[200px] z-10 animate-fade-in">
                   {categoryFilters.map((cat) => (
                     <button key={cat.value}
                       onClick={() => {
                         setSearchParams(cat.value === "all" ? {} : { filter: cat.value });
                         setFilterOpen(false);
                       }}
-                      className={`block w-full text-left py-2 text-xs tracking-[0.15em] uppercase font-light transition-opacity ${filter === cat.value ? "opacity-100 font-normal" : "opacity-50 hover:opacity-80"}`}>
+                      className={`block w-full text-left py-2.5 text-sm tracking-[0.1em] uppercase font-light transition-all hover-gray px-2 -mx-2 min-h-[40px] ${filter === cat.value ? "opacity-100 font-normal" : "opacity-50 hover:opacity-80"}`}>
                       {cat.label}
                     </button>
                   ))}
@@ -117,16 +116,15 @@ const Collection = () => {
             </div>
           </div>
 
-          {/* Sort */}
           <div className="relative">
-            <button onClick={() => setSortOpen(!sortOpen)} className="text-xs tracking-[0.2em] uppercase font-light flex items-center gap-2 hover:opacity-50 transition-opacity">
+            <button onClick={() => setSortOpen(!sortOpen)} className="text-sm tracking-[0.15em] uppercase font-light flex items-center gap-2 hover-gray px-2 py-1 transition-all">
               {currentSort} <ChevronDown className="w-3 h-3" />
             </button>
             {sortOpen && (
-              <div className="absolute right-0 top-full mt-2 bg-background border border-border py-3 px-5 min-w-[200px] z-10 animate-fade-in">
+              <div className="absolute right-0 top-full mt-2 bg-background border border-border py-3 px-5 min-w-[220px] z-10 animate-fade-in">
                 {sortOptions.map((opt) => (
                   <button key={opt} onClick={() => { setCurrentSort(opt); setSortOpen(false); }}
-                    className={`block w-full text-left py-2 text-xs tracking-[0.15em] uppercase font-light transition-opacity ${currentSort === opt ? "opacity-100" : "opacity-50 hover:opacity-80"}`}>
+                    className={`block w-full text-left py-2.5 text-sm tracking-[0.1em] uppercase font-light transition-all hover-gray px-2 -mx-2 min-h-[40px] ${currentSort === opt ? "opacity-100" : "opacity-50 hover:opacity-80"}`}>
                     {opt}
                   </button>
                 ))}
@@ -142,7 +140,7 @@ const Collection = () => {
         ) : products.length === 0 ? (
           <p className="text-center py-20 text-muted-foreground text-sm tracking-widest uppercase">No products found</p>
         ) : (
-          <div ref={gridRef} className="grid gap-5 md:gap-8 grid-cols-2 lg:grid-cols-4">
+          <div ref={gridRef} className="grid gap-4 sm:gap-6 md:gap-8 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {products.map((product, i) => {
               const img = product.node.images.edges[0]?.node;
               const price = product.node.priceRange.minVariantPrice;
@@ -154,8 +152,8 @@ const Collection = () => {
                     transform: gridVisible ? 'translateY(0)' : 'translateY(20px)',
                     transition: 'all 0.6s ease-out',
                   }}>
-                  <Link to={`/product/${product.node.handle}`} className="block">
-                    <div className="aspect-[3/4] overflow-hidden mb-4 bg-secondary">
+                  <Link to={`/product/${product.node.handle}`} className="block hover-gray rounded-sm">
+                    <div className="aspect-[3/4] overflow-hidden mb-3 bg-secondary">
                       {img ? (
                         <img
                           src={img.url}
@@ -167,20 +165,22 @@ const Collection = () => {
                         <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">No Image</div>
                       )}
                     </div>
-                    <p className="text-xs md:text-sm tracking-[0.15em] uppercase font-light text-muted-foreground mb-1">
-                      {product.node.vendor || "FLTHY MRKT"}
-                    </p>
-                    <p className="text-sm md:text-base tracking-[0.1em] font-light mb-1 leading-tight">
-                      {product.node.title}
-                    </p>
-                    <p className="text-xs md:text-sm tracking-[0.1em] font-light text-muted-foreground">
-                      ${parseFloat(price.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </p>
+                    <div className="px-1 pb-2">
+                      <p className="text-xs sm:text-sm tracking-[0.15em] uppercase font-light text-muted-foreground mb-1">
+                        {product.node.vendor || "FLTHY MRKT"}
+                      </p>
+                      <p className="text-sm sm:text-base tracking-[0.1em] font-light mb-1 leading-tight">
+                        {product.node.title}
+                      </p>
+                      <p className="text-xs sm:text-sm tracking-[0.1em] font-light text-muted-foreground">
+                        ${parseFloat(price.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
                   </Link>
                   <button
                     onClick={() => handleQuickAdd(product)}
                     disabled={isLoading}
-                    className="mt-3 w-full text-xs tracking-[0.2em] uppercase font-light border border-border py-3 hover:bg-foreground hover:text-background transition-all duration-300 opacity-0 group-hover:opacity-100"
+                    className="mt-2 w-full text-xs sm:text-sm tracking-[0.15em] uppercase font-light border border-border py-3 hover:bg-foreground hover:text-background transition-all duration-300 opacity-0 group-hover:opacity-100 min-h-[44px]"
                   >
                     Quick Add
                   </button>

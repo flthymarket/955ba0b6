@@ -55,14 +55,14 @@ const Header = () => {
             <div className="flex items-center gap-6">
               <div className="relative">
                 <button onClick={() => setHelpOpen(!helpOpen)}
-                  className="text-xs tracking-[0.2em] uppercase font-light text-muted-foreground hover:opacity-50 transition-opacity flex items-center gap-1">
+                  className="text-xs tracking-[0.2em] uppercase font-light text-muted-foreground hover-gray px-2 py-1 transition-all flex items-center gap-1">
                   Help <ChevronDown className="w-3 h-3" />
                 </button>
                 {helpOpen && (
                   <div className="absolute right-0 top-full mt-2 bg-background border border-border py-3 px-6 min-w-[220px] z-50 animate-fade-in">
                     {helpLinks.map((link) => (
                       <Link key={link.label} to={link.href}
-                        className="block py-2 text-xs tracking-[0.15em] uppercase font-light hover:opacity-50 transition-opacity" onClick={() => setHelpOpen(false)}>
+                        className="block py-2 text-sm tracking-[0.15em] uppercase font-light hover-gray px-2 -mx-2 transition-all" onClick={() => setHelpOpen(false)}>
                         {link.label}
                       </Link>
                     ))}
@@ -74,26 +74,26 @@ const Header = () => {
         </div>
 
         <div className="max-w-[1400px] mx-auto px-4 md:px-6">
-          <div className="relative flex items-center justify-center py-4">
-            <button className="lg:hidden absolute left-0" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+          <div className="relative flex items-center justify-center py-3 md:py-4">
+            <button className="lg:hidden absolute left-0 p-2 hover-gray" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
 
             <Link to="/" className="flex-shrink-0">
-              <img src={logo} alt="FLTHY MRKT" className="h-12 md:h-16 lg:h-20 w-auto" />
+              <img src={logo} alt="FLTHY MRKT" className="h-10 sm:h-12 md:h-16 lg:h-20 w-auto" />
             </Link>
 
-            <div className="flex items-center gap-5 md:gap-6 absolute right-0">
-              <button onClick={() => setSearchOpen(true)} className="transition-opacity duration-150 hover:opacity-50">
+            <div className="flex items-center gap-4 md:gap-6 absolute right-0">
+              <button onClick={() => setSearchOpen(true)} className="p-2 hover-gray transition-all duration-200">
                 <Search className="w-5 h-5" />
               </button>
-              <Link to={user ? "/account" : "/auth"} className="transition-opacity duration-150 hover:opacity-50">
+              <Link to={user ? "/account" : "/auth"} className="p-2 hover-gray transition-all duration-200">
                 <User className="w-5 h-5" />
               </Link>
-              <button onClick={() => setCartOpen(true)} className="transition-opacity duration-150 hover:opacity-50 relative">
+              <button onClick={() => setCartOpen(true)} className="p-2 hover-gray transition-all duration-200 relative">
                 <ShoppingBag className="w-5 h-5" />
                 {totalItems > 0 && (
-                  <span className="absolute -top-2 -right-2 w-5 h-5 bg-foreground text-background text-[9px] flex items-center justify-center rounded-full">
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-foreground text-background text-[10px] flex items-center justify-center rounded-full">
                     {totalItems}
                   </span>
                 )}
@@ -101,19 +101,19 @@ const Header = () => {
             </div>
           </div>
 
-          <nav className="hidden lg:flex items-center justify-center gap-8 pb-4 border-b border-border">
+          <nav className="hidden lg:flex items-center justify-center gap-6 pb-3 border-b border-border">
             {navLinks.map((link) => (
-              <Link key={link.label} to={link.href} className="text-xs tracking-[0.2em] uppercase font-light hover:opacity-50 transition-opacity duration-300">{link.label}</Link>
+              <Link key={link.label} to={link.href} className="text-sm tracking-[0.15em] uppercase font-light hover-gray px-3 py-1.5 transition-all duration-200">{link.label}</Link>
             ))}
           </nav>
         </div>
       </header>
 
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-40 bg-background pt-32 px-6 animate-fade-in">
-          <nav className="flex flex-col gap-6">
+        <div className="fixed inset-0 z-40 bg-background pt-28 px-6 animate-fade-in overflow-y-auto">
+          <nav className="flex flex-col gap-4">
             {navLinks.map((link) => (
-              <Link key={link.label} to={link.href} className="text-base tracking-[0.2em] uppercase font-light" onClick={() => setMobileMenuOpen(false)}>
+              <Link key={link.label} to={link.href} className="text-lg tracking-[0.2em] uppercase font-light hover-gray px-3 py-3 transition-all min-h-[48px] flex items-center" onClick={() => setMobileMenuOpen(false)}>
                 {link.label}
               </Link>
             ))}

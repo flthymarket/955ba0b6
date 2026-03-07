@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Poppins:wght@200;300;400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -44,6 +44,10 @@
     --sidebar-accent-foreground: 0 0% 0%;
     --sidebar-border: 0 0% 92%;
     --sidebar-ring: 0 0% 0%;
+
+    --footer-bg: 0 0% 0%;
+    --footer-fg: 0 0% 100%;
+    --hover-highlight: 0 0% 94%;
   }
 }
 
@@ -70,27 +74,47 @@
 
 @layer utilities {
   .nav-link {
-    @apply text-xs tracking-[0.2em] uppercase font-light transition-opacity duration-300 hover:opacity-50;
+    @apply text-sm tracking-[0.2em] uppercase font-light transition-all duration-200;
     font-family: 'Poppins', sans-serif;
   }
 
+  .nav-link:hover {
+    background-color: hsl(var(--hover-highlight));
+    padding: 2px 6px;
+    margin: -2px -6px;
+  }
+
   .editorial-heading {
-    @apply text-xs tracking-[0.25em] uppercase font-light;
+    @apply text-sm tracking-[0.25em] uppercase font-light;
     font-family: 'Poppins', sans-serif;
   }
 
   .product-title {
-    @apply text-sm tracking-[0.12em] uppercase font-light;
+    @apply text-base tracking-[0.12em] uppercase font-light;
     font-family: 'Poppins', sans-serif;
   }
 
   .product-price {
-    @apply text-sm tracking-[0.1em] font-light;
+    @apply text-base tracking-[0.1em] font-light;
     font-family: 'Poppins', sans-serif;
   }
 
   .section-title {
-    @apply text-base tracking-[0.3em] uppercase font-extralight mb-14 text-center;
+    @apply text-lg tracking-[0.3em] uppercase font-extralight mb-14 text-center;
     font-family: 'Poppins', sans-serif;
+  }
+
+  .font-akira {
+    font-family: 'Anton', sans-serif;
+    font-weight: 400;
+    text-transform: uppercase;
+  }
+
+  .hover-gray {
+    @apply transition-colors duration-200;
+  }
+
+  .hover-gray:hover {
+    background-color: hsl(var(--hover-highlight));
   }
 }
