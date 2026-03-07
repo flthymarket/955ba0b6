@@ -9,22 +9,22 @@ import AnnouncementBanner from "./AnnouncementBanner";
 import { useCartStore } from "@/stores/cartStore";
 
 const navLinks = [
-  { label: "New Arrivals", href: "/collection?filter=new" },
-  { label: "Brands", href: "/brands" },
-  { label: "All", href: "/collection" },
-  { label: "Tops", href: "/collection?filter=tops" },
-  { label: "Bottoms", href: "/collection?filter=bottoms" },
-  { label: "Outerwear", href: "/collection?filter=outerwear" },
-  { label: "Accessories", href: "/collection?filter=accessories" },
-];
+{ label: "New Arrivals", href: "/collection?filter=new" },
+{ label: "Brands", href: "/brands" },
+{ label: "All", href: "/collection" },
+{ label: "Tops", href: "/collection?filter=tops" },
+{ label: "Bottoms", href: "/collection?filter=bottoms" },
+{ label: "Outerwear", href: "/collection?filter=outerwear" },
+{ label: "Accessories", href: "/collection?filter=accessories" }];
+
 
 const helpLinks = [
-  { label: "Contact Support", href: "/help#contact" },
-  { label: "Shipping Policy", href: "/help#shipping-policy" },
-  { label: "Refund Policy", href: "/help#refund-policy" },
-  { label: "Privacy Policy", href: "/help#privacy-policy" },
-  { label: "Terms of Service", href: "/help#terms-of-service" },
-];
+{ label: "Contact Support", href: "/help#contact" },
+{ label: "Shipping Policy", href: "/help#shipping-policy" },
+{ label: "Refund Policy", href: "/help#refund-policy" },
+{ label: "Privacy Policy", href: "/help#privacy-policy" },
+{ label: "Terms of Service", href: "/help#terms-of-service" }];
+
 
 const Header = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -33,7 +33,7 @@ const Header = () => {
   const [cartOpen, setCartOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user } = useAuth();
-  const totalItems = useCartStore(state => state.items.reduce((sum, i) => sum + i.quantity, 0));
+  const totalItems = useCartStore((state) => state.items.reduce((sum, i) => sum + i.quantity, 0));
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
@@ -46,28 +46,28 @@ const Header = () => {
       <AnnouncementBanner />
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-          scrolled ? "bg-background/95 backdrop-blur-sm border-b border-border" : "bg-background"
-        }`}
-      >
+        scrolled ? "bg-background/95 backdrop-blur-sm border-b border-border" : "bg-background"}`
+        }>
+        
         <div className="border-b border-border">
           <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-2 flex justify-between items-center">
-            <span className="text-xs tracking-[0.2em] uppercase font-light">FLTHYMRKT</span>
+            
             <div className="flex items-center gap-6">
               <div className="relative">
                 <button onClick={() => setHelpOpen(!helpOpen)}
-                  className="text-xs tracking-[0.2em] uppercase font-light text-muted-foreground hover-gray px-2 py-1 transition-all flex items-center gap-1">
+                className="text-xs tracking-[0.2em] uppercase font-light text-muted-foreground hover-gray px-2 py-1 transition-all flex items-center gap-1">
                   Help <ChevronDown className="w-3 h-3" />
                 </button>
-                {helpOpen && (
-                  <div className="absolute right-0 top-full mt-2 bg-background border border-border py-3 px-6 min-w-[220px] z-50 animate-fade-in">
-                    {helpLinks.map((link) => (
-                      <Link key={link.label} to={link.href}
-                        className="block py-2 text-sm tracking-[0.15em] uppercase font-light hover-gray px-2 -mx-2 transition-all" onClick={() => setHelpOpen(false)}>
+                {helpOpen &&
+                <div className="absolute right-0 top-full mt-2 bg-background border border-border py-3 px-6 min-w-[220px] z-50 animate-fade-in">
+                    {helpLinks.map((link) =>
+                  <Link key={link.label} to={link.href}
+                  className="block py-2 text-sm tracking-[0.15em] uppercase font-light hover-gray px-2 -mx-2 transition-all" onClick={() => setHelpOpen(false)}>
                         {link.label}
                       </Link>
-                    ))}
+                  )}
                   </div>
-                )}
+                }
               </div>
             </div>
           </div>
@@ -92,39 +92,39 @@ const Header = () => {
               </Link>
               <button onClick={() => setCartOpen(true)} className="p-2 hover-gray transition-all duration-200 relative">
                 <ShoppingBag className="w-5 h-5" />
-                {totalItems > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-foreground text-background text-[10px] flex items-center justify-center rounded-full">
+                {totalItems > 0 &&
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-foreground text-background text-[10px] flex items-center justify-center rounded-full">
                     {totalItems}
                   </span>
-                )}
+                }
               </button>
             </div>
           </div>
 
           <nav className="hidden lg:flex items-center justify-center gap-6 pb-3 border-b border-border">
-            {navLinks.map((link) => (
-              <Link key={link.label} to={link.href} className="text-sm tracking-[0.15em] uppercase font-light hover-gray px-3 py-1.5 transition-all duration-200">{link.label}</Link>
-            ))}
+            {navLinks.map((link) =>
+            <Link key={link.label} to={link.href} className="text-sm tracking-[0.15em] uppercase font-light hover-gray px-3 py-1.5 transition-all duration-200">{link.label}</Link>
+            )}
           </nav>
         </div>
       </header>
 
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 z-40 bg-background pt-28 px-6 animate-fade-in overflow-y-auto">
+      {mobileMenuOpen &&
+      <div className="fixed inset-0 z-40 bg-background pt-28 px-6 animate-fade-in overflow-y-auto">
           <nav className="flex flex-col gap-4">
-            {navLinks.map((link) => (
-              <Link key={link.label} to={link.href} className="text-lg tracking-[0.2em] uppercase font-light hover-gray px-3 py-3 transition-all min-h-[48px] flex items-center" onClick={() => setMobileMenuOpen(false)}>
+            {navLinks.map((link) =>
+          <Link key={link.label} to={link.href} className="text-lg tracking-[0.2em] uppercase font-light hover-gray px-3 py-3 transition-all min-h-[48px] flex items-center" onClick={() => setMobileMenuOpen(false)}>
                 {link.label}
               </Link>
-            ))}
+          )}
           </nav>
         </div>
-      )}
+      }
 
       <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
       <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
-    </>
-  );
+    </>);
+
 };
 
 export default Header;
