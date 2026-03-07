@@ -132,13 +132,11 @@ const ProductPage = () => {
           {/* Details */}
           <div className="lg:pt-4">
             {/* Brand in gray */}
-            <p className="text-sm md:text-base tracking-[0.2em] uppercase font-light text-muted-foreground mb-2">
+            <p className="text-sm sm:text-base tracking-[0.2em] uppercase font-light text-muted-foreground mb-2">
               {product.vendor || "FLTHY MRKT"}
             </p>
-            {/* Product name in black */}
-            <h1 className="text-lg md:text-2xl tracking-[0.1em] font-light mb-3 leading-tight">{product.title}</h1>
-            {/* Price smaller */}
-            <p className="text-sm md:text-base tracking-[0.1em] font-light text-muted-foreground mb-8">
+            <h1 className="text-xl sm:text-2xl md:text-3xl tracking-[0.08em] font-light mb-3 leading-tight">{product.title}</h1>
+            <p className="text-sm sm:text-base tracking-[0.1em] font-light text-muted-foreground mb-8">
               ${parseFloat(price.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </p>
 
