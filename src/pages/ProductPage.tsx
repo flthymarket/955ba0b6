@@ -107,7 +107,7 @@ const ProductPage = () => {
           </span>
         </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 lg:gap-20">
           {/* Images */}
           <div>
             <div className="aspect-[3/4] bg-secondary overflow-hidden mb-3">
