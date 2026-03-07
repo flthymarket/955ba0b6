@@ -97,17 +97,17 @@ const ProductPage = () => {
   };
 
   return (
-    <main className="pt-32 md:pt-36 pb-24 animate-fade-in">
-      <div className="max-w-[1400px] mx-auto px-4 md:px-8">
-        <nav className="mb-8 md:mb-12">
-          <span className="text-xs tracking-widest text-muted-foreground font-light">
-            <Link to="/" className="hover:opacity-50 transition-opacity duration-150">HOME</Link>{" / "}
-            <Link to="/collection" className="hover:opacity-50 transition-opacity duration-150">COLLECTION</Link>{" / "}
+    <main className="pt-28 sm:pt-32 md:pt-36 pb-20 md:pb-24 animate-fade-in">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8">
+        <nav className="mb-6 md:mb-12">
+          <span className="text-xs sm:text-sm tracking-widest text-muted-foreground font-light">
+            <Link to="/" className="hover-gray px-1 py-0.5 transition-all">HOME</Link>{" / "}
+            <Link to="/collection" className="hover-gray px-1 py-0.5 transition-all">COLLECTION</Link>{" / "}
             <span className="text-foreground">{product.title.toUpperCase()}</span>
           </span>
         </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 lg:gap-20">
           {/* Images */}
           <div>
             <div className="aspect-[3/4] bg-secondary overflow-hidden mb-3">
@@ -132,13 +132,11 @@ const ProductPage = () => {
           {/* Details */}
           <div className="lg:pt-4">
             {/* Brand in gray */}
-            <p className="text-sm md:text-base tracking-[0.2em] uppercase font-light text-muted-foreground mb-2">
+            <p className="text-sm sm:text-base tracking-[0.2em] uppercase font-light text-muted-foreground mb-2">
               {product.vendor || "FLTHY MRKT"}
             </p>
-            {/* Product name in black */}
-            <h1 className="text-lg md:text-2xl tracking-[0.1em] font-light mb-3 leading-tight">{product.title}</h1>
-            {/* Price smaller */}
-            <p className="text-sm md:text-base tracking-[0.1em] font-light text-muted-foreground mb-8">
+            <h1 className="text-xl sm:text-2xl md:text-3xl tracking-[0.08em] font-light mb-3 leading-tight">{product.title}</h1>
+            <p className="text-sm sm:text-base tracking-[0.1em] font-light text-muted-foreground mb-8">
               ${parseFloat(price.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </p>
 

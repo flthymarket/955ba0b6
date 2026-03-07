@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { storefrontApiRequest, PRODUCTS_QUERY, type ShopifyProduct } from "@/lib/shopify";
 import { useCartStore } from "@/stores/cartStore";
 import { toast } from "sonner";
-import heroImage from "@/assets/hero-sale.jpg";
 import { supabase } from "@/integrations/supabase/client";
 
 const useScrollReveal = (threshold = 0.1) => {
@@ -67,29 +66,28 @@ const Index = () => {
 
   return (
     <main>
-      {/* Full-width Hero Banner */}
-      <section className="relative w-full h-[70vh] md:h-[85vh] overflow-hidden">
-        <img
-          src={heroImage}
-          alt="FLTHY MRKT Collection"
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 flex flex-col items-center justify-end pb-16 md:pb-24 px-6">
-          <Link
-            to="/collection"
-            className="text-foreground text-sm md:text-base tracking-[0.35em] uppercase font-light border-2 border-foreground px-10 py-4 bg-background/80 hover:bg-foreground hover:text-background transition-all duration-300"
-          >
-            Shop Now
-          </Link>
-        </div>
+      {/* Hero — Large FLTHYMRKT text, clipped at bottom */}
+      <section className="relative w-full h-[45vh] md:h-[55vh] overflow-hidden flex flex-col items-center justify-center bg-background">
+        <h1
+          className="font-akira text-[18vw] md:text-[14vw] lg:text-[12vw] leading-[0.85] text-foreground select-none translate-y-[15%]"
+          style={{ letterSpacing: '-0.02em' }}
+        >
+          FLTHYMRKT
+        </h1>
+        <Link
+          to="/collection"
+          className="absolute bottom-8 md:bottom-12 text-sm md:text-base tracking-[0.35em] uppercase font-light border-2 border-foreground px-10 py-4 bg-background hover-gray hover:border-foreground transition-all duration-300 z-10"
+        >
+          Shop Now
+        </Link>
       </section>
 
       {/* New Arrivals / Product Grid */}
       <section
         ref={productsReveal.ref}
-        className={`max-w-[1400px] mx-auto px-4 md:px-8 py-20 md:py-28 transition-all duration-1000 ease-out ${productsReveal.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
+        className={`max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8 py-16 md:py-24 transition-all duration-1000 ease-out ${productsReveal.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
       >
-        <h2 className="text-base md:text-lg tracking-[0.35em] uppercase font-extralight mb-14 text-center">New Arrivals</h2>
+        <h2 className="text-lg md:text-xl tracking-[0.35em] uppercase font-extralight mb-12 text-center">New Arrivals</h2>
 
         {loading ? (
           <div className="text-center py-20">
@@ -104,7 +102,7 @@ const Index = () => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
               {products.map((product, i) => {
                 const img = product.node.images.edges[0]?.node;
                 const price = product.node.priceRange.minVariantPrice;
@@ -118,8 +116,8 @@ const Index = () => {
                       transform: productsReveal.visible ? 'translateY(0)' : 'translateY(20px)',
                     }}
                   >
-                    <Link to={`/product/${product.node.handle}`} className="block">
-                      <div className="aspect-[3/4] overflow-hidden mb-4 bg-secondary relative">
+                    <Link to={`/product/${product.node.handle}`} className="block hover-gray rounded-sm">
+                      <div className="aspect-[3/4] overflow-hidden mb-3 bg-secondary relative">
                         {img ? (
                           <img
                             src={img.url}
@@ -133,20 +131,22 @@ const Index = () => {
                           </div>
                         )}
                       </div>
-                      <p className="text-xs md:text-sm tracking-[0.15em] uppercase font-light text-muted-foreground mb-1">
-                        {product.node.vendor || "FLTHY MRKT"}
-                      </p>
-                      <p className="text-sm md:text-base tracking-[0.1em] font-light mb-1 leading-tight">
-                        {product.node.title}
-                      </p>
-                      <p className="text-xs md:text-sm tracking-[0.1em] font-light text-muted-foreground">
-                        ${parseFloat(price.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      </p>
+                      <div className="px-1 pb-2">
+                        <p className="text-xs sm:text-sm tracking-[0.15em] uppercase font-light text-muted-foreground mb-1">
+                          {product.node.vendor || "FLTHY MRKT"}
+                        </p>
+                        <p className="text-sm sm:text-base tracking-[0.1em] font-light mb-1 leading-tight">
+                          {product.node.title}
+                        </p>
+                        <p className="text-xs sm:text-sm tracking-[0.1em] font-light text-muted-foreground">
+                          ${parseFloat(price.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
                     </Link>
                     <button
                       onClick={() => handleQuickAdd(product)}
                       disabled={isLoading}
-                      className="mt-3 w-full text-xs tracking-[0.2em] uppercase font-light border border-border py-3 hover:bg-foreground hover:text-background transition-all duration-300 opacity-0 group-hover:opacity-100"
+                      className="mt-2 w-full text-xs tracking-[0.2em] uppercase font-light border border-border py-3 hover:bg-foreground hover:text-background transition-all duration-300 opacity-0 group-hover:opacity-100 min-h-[44px]"
                     >
                       Quick Add
                     </button>
@@ -154,10 +154,10 @@ const Index = () => {
                 );
               })}
             </div>
-            <div className="text-center mt-14">
+            <div className="text-center mt-12">
               <Link
                 to="/collection"
-                className="text-sm tracking-[0.25em] uppercase font-light border border-foreground px-10 py-4 hover:bg-foreground hover:text-background transition-all duration-300"
+                className="text-sm tracking-[0.25em] uppercase font-light border border-foreground px-10 py-4 hover:bg-foreground hover:text-background transition-all duration-300 inline-block min-h-[48px] leading-[48px]"
               >
                 View All
               </Link>
@@ -169,14 +169,14 @@ const Index = () => {
       {/* Newsletter / CTA Section */}
       <section
         ref={newsletterReveal.ref}
-        className={`border-t border-border py-20 md:py-28 transition-all duration-1000 ease-out ${newsletterReveal.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
+        className={`border-t border-border py-16 md:py-24 transition-all duration-1000 ease-out ${newsletterReveal.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
       >
         <div className="max-w-xl mx-auto px-6 text-center">
           <h2 className="text-lg md:text-xl tracking-[0.3em] font-extralight uppercase mb-4">
             Everybody Can't Have Limited Items..
           </h2>
-          <p className="text-xs md:text-sm text-muted-foreground tracking-[0.2em] font-light mb-8 uppercase">
-            Join our email list to find out about the new drop and never miss it again
+          <p className="text-sm text-muted-foreground tracking-[0.15em] font-light mb-8 uppercase">
+            Join our email list for new drops & exclusives
           </p>
           <div className="flex border border-foreground max-w-md mx-auto">
             <input
@@ -184,11 +184,11 @@ const Index = () => {
               placeholder="YOUR EMAIL"
               value={newsletterEmail}
               onChange={(e) => setNewsletterEmail(e.target.value)}
-              className="flex-1 bg-transparent outline-none text-sm tracking-widest py-4 px-4 placeholder:text-muted-foreground"
+              className="flex-1 bg-transparent outline-none text-sm tracking-widest py-4 px-4 placeholder:text-muted-foreground min-h-[48px]"
             />
             <button
               onClick={handleNewsletter}
-              className="bg-foreground text-background px-8 py-4 text-sm tracking-[0.2em] uppercase font-light hover:opacity-80 transition-opacity"
+              className="bg-foreground text-background px-8 py-4 text-sm tracking-[0.2em] uppercase font-light hover:opacity-80 transition-opacity min-h-[48px]"
             >
               Subscribe
             </button>
