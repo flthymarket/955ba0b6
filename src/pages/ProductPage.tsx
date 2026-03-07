@@ -97,8 +97,8 @@ const ProductPage = () => {
   };
 
   return (
-    <main className="pt-32 md:pt-36 pb-24 animate-fade-in">
-      <div className="max-w-[1400px] mx-auto px-4 md:px-8">
+    <main className="pt-28 sm:pt-32 md:pt-36 pb-20 md:pb-24 animate-fade-in">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8">
         <nav className="mb-8 md:mb-12">
           <span className="text-xs tracking-widest text-muted-foreground font-light">
             <Link to="/" className="hover:opacity-50 transition-opacity duration-150">HOME</Link>{" / "}
