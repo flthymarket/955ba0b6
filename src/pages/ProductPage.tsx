@@ -99,10 +99,10 @@ const ProductPage = () => {
   return (
     <main className="pt-28 sm:pt-32 md:pt-36 pb-20 md:pb-24 animate-fade-in">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8">
-        <nav className="mb-8 md:mb-12">
-          <span className="text-xs tracking-widest text-muted-foreground font-light">
-            <Link to="/" className="hover:opacity-50 transition-opacity duration-150">HOME</Link>{" / "}
-            <Link to="/collection" className="hover:opacity-50 transition-opacity duration-150">COLLECTION</Link>{" / "}
+        <nav className="mb-6 md:mb-12">
+          <span className="text-xs sm:text-sm tracking-widest text-muted-foreground font-light">
+            <Link to="/" className="hover-gray px-1 py-0.5 transition-all">HOME</Link>{" / "}
+            <Link to="/collection" className="hover-gray px-1 py-0.5 transition-all">COLLECTION</Link>{" / "}
             <span className="text-foreground">{product.title.toUpperCase()}</span>
           </span>
         </nav>
