@@ -160,14 +160,13 @@ const Index = () => {
                     }}
                   >
                     <Link to={`/product/${product.node.handle}`} className="block">
-                      <div className="aspect-[3/4] overflow-hidden mb-3 bg-secondary relative">
+                      <div className="aspect-[3/4] overflow-hidden mb-3 bg-secondary relative p-4">
                         {img ? (
                           <img
                             src={img.url}
                             alt={img.altText || product.node.title}
                             className="w-full h-full object-contain transition-opacity duration-500"
                             loading="lazy"
-                            style={{ opacity: 1 }}
                             onMouseEnter={(e) => {
                               if (hoverImg) (e.target as HTMLImageElement).src = hoverImg.url;
                             }}
