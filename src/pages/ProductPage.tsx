@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, Link } from "react-router-dom";
-import { Minus, Plus, Loader2, ChevronDown } from "lucide-react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { Minus, Plus, Loader2, ChevronDown, Bookmark } from "lucide-react";
 import { storefrontApiRequest, PRODUCT_BY_HANDLE_QUERY, PRODUCTS_QUERY, type ShopifyProduct } from "@/lib/shopify";
 import { useCartStore } from "@/stores/cartStore";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,6 +9,7 @@ import OfferModal from "@/components/OfferModal";
 
 const ProductPage = () => {
   const { id: handle } = useParams();
+  const navigate = useNavigate();
   const [product, setProduct] = useState<ShopifyProduct["node"] | null>(null);
   const [related, setRelated] = useState<ShopifyProduct[]>([]);
   const [selectedVariantId, setSelectedVariantId] = useState<string>("");
@@ -20,6 +21,7 @@ const ProductPage = () => {
   const [offerOpen, setOfferOpen] = useState(false);
   const addItem = useCartStore(state => state.addItem);
   const cartLoading = useCartStore(state => state.isLoading);
+  const getCheckoutUrl = useCartStore(state => state.getCheckoutUrl);
   const relatedRef = useRef<HTMLDivElement>(null);
   const [relatedVisible, setRelatedVisible] = useState(false);
 
@@ -60,7 +62,7 @@ const ProductPage = () => {
 
   if (loading) {
     return (
-      <main className="pt-36 pb-24 text-center">
+      <main className="pt-28 sm:pt-32 md:pt-36 pb-24 text-center">
         <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
       </main>
     );
@@ -68,7 +70,7 @@ const ProductPage = () => {
 
   if (!product) {
     return (
-      <main className="pt-36 pb-24 text-center">
+      <main className="pt-28 sm:pt-32 md:pt-36 pb-24 text-center">
         <p className="text-lg tracking-[0.2em] uppercase font-light">Product not found</p>
       </main>
     );
@@ -96,10 +98,34 @@ const ProductPage = () => {
     toast.success("Added to bag");
   };
 
+  const handleBuyNow = async () => {
+    if (!selectedVariant) {
+      toast.error("Please select an option");
+      return;
+    }
+    await addItem({
+      product: { node: product } as ShopifyProduct,
+      variantId: selectedVariant.id,
+      variantTitle: selectedVariant.title,
+      price: selectedVariant.price,
+      quantity,
+      selectedOptions: selectedVariant.selectedOptions || [],
+    });
+    // Wait a tick for state to update then redirect
+    setTimeout(() => {
+      const checkoutUrl = getCheckoutUrl();
+      if (checkoutUrl) window.open(checkoutUrl, '_blank');
+    }, 500);
+  };
+
+  // Extract Shopify numeric ID from GID for offers (store full GID as text)
+  const shopifyProductId = product.id;
+
   return (
-    <main className="pt-28 sm:pt-32 md:pt-36 pb-20 md:pb-24 animate-fade-in">
+    <main className="pt-8 sm:pt-12 md:pt-16 pb-20 md:pb-24 animate-fade-in">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8">
-        <nav className="mb-6 md:mb-12">
+        {/* Breadcrumb */}
+        <nav className="mb-4 sm:mb-6 md:mb-8">
           <span className="text-xs sm:text-sm tracking-widest text-muted-foreground font-light">
             <Link to="/" className="hover-gray px-1 py-0.5 transition-all">HOME</Link>{" / "}
             <Link to="/collection" className="hover-gray px-1 py-0.5 transition-all">COLLECTION</Link>{" / "}
@@ -107,18 +133,21 @@ const ProductPage = () => {
           </span>
         </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 lg:gap-20">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10 lg:gap-16">
           {/* Images */}
           <div>
-            <div className="aspect-[3/4] bg-secondary overflow-hidden mb-3">
+            <div className="aspect-[3/4] bg-secondary overflow-hidden mb-3 relative">
               {mainImage ? (
-                <img src={mainImage.url} alt={mainImage.altText || product.title} className="w-full h-full object-cover transition-transform duration-500 hover:scale-[1.02]" />
+                <img src={mainImage.url} alt={mainImage.altText || product.title} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">No Image</div>
               )}
+              <button className="absolute top-4 right-4 p-2 hover-gray transition-all">
+                <Bookmark className="w-5 h-5" />
+              </button>
             </div>
             {images.length > 1 && (
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
                 {images.map((img, i) => (
                   <button key={i} onClick={() => setCurrentImage(i)}
                     className={`aspect-square overflow-hidden border transition-all duration-150 ${currentImage === i ? "border-foreground" : "border-border hover:border-foreground/50"}`}>
@@ -129,21 +158,23 @@ const ProductPage = () => {
             )}
           </div>
 
-          {/* Details */}
+          {/* Details - formatted like Justin Reed / Sheng Li */}
           <div className="lg:pt-4">
-            {/* Brand in gray */}
-            <p className="text-sm sm:text-base tracking-[0.2em] uppercase font-light text-muted-foreground mb-2">
-              {product.vendor || "FLTHY MRKT"}
+            {/* Brand/Vendor in gray */}
+            <p className="text-sm sm:text-base tracking-[0.15em] uppercase font-light text-muted-foreground mb-2">
+              {product.vendor || ""}
             </p>
-            <h1 className="text-xl sm:text-2xl md:text-3xl tracking-[0.08em] font-light mb-3 leading-tight">{product.title}</h1>
-            <p className="text-sm sm:text-base tracking-[0.1em] font-light text-muted-foreground mb-8">
-              ${parseFloat(price.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            {/* Product title - bold/medium weight */}
+            <h1 className="text-xl sm:text-2xl md:text-3xl tracking-[0.03em] font-medium mb-3 leading-tight text-foreground">{product.title}</h1>
+            {/* Price */}
+            <p className="text-base sm:text-lg tracking-[0.05em] font-light text-foreground mb-8">
+              ${parseFloat(price.amount).toLocaleString(undefined, { minimumFractionDigits: 0 })}
             </p>
 
             {/* Variant selection */}
             {hasOptions && product.options.map((option) => (
               <div key={option.name} className="mb-6">
-                <p className="text-xs tracking-[0.2em] uppercase font-light mb-3">{option.name}</p>
+                <p className="text-sm tracking-[0.1em] font-light mb-3">{option.name}</p>
                 <div className="flex gap-2 flex-wrap">
                   {option.values.map((val) => {
                     const matchingVariant = product.variants.edges.find(v =>
@@ -158,7 +189,7 @@ const ProductPage = () => {
                         key={val}
                         onClick={() => matchingVariant && setSelectedVariantId(matchingVariant.node.id)}
                         disabled={!isAvailable}
-                        className={`min-w-[48px] h-11 border text-sm tracking-widest font-light transition-all duration-150 px-4 ${
+                        className={`min-w-[48px] h-11 border text-sm tracking-widest font-light transition-all duration-150 px-4 rounded-full ${
                           isSelected ? "bg-foreground text-background border-foreground"
                             : !isAvailable ? "border-border text-muted-foreground/30 line-through cursor-not-allowed"
                             : "border-border hover:border-foreground"
@@ -172,9 +203,9 @@ const ProductPage = () => {
               </div>
             ))}
 
-            {/* Quantity */}
+            {/* Quantity - no limit */}
             <div className="mb-8">
-              <p className="text-xs tracking-[0.2em] uppercase font-light mb-3">Quantity</p>
+              <p className="text-sm tracking-[0.1em] font-light mb-3">Quantity</p>
               <div className="flex items-center border border-border w-fit">
                 <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-11 h-11 flex items-center justify-center hover:opacity-50 transition-opacity duration-150">
                   <Minus className="w-4 h-4" />
@@ -186,18 +217,28 @@ const ProductPage = () => {
               </div>
             </div>
 
-            {/* Add to Cart & Make Offer */}
+            {/* Action Buttons */}
             <div className="flex flex-col gap-3 mb-10">
+              {/* Add to Cart - full width black */}
               <button
                 onClick={handleAddToCart}
                 disabled={cartLoading || !selectedVariant?.availableForSale}
-                className="w-full bg-primary text-primary-foreground py-4 text-sm tracking-[0.2em] uppercase font-light hover:opacity-80 transition-opacity duration-150 min-h-[52px] flex items-center justify-center disabled:opacity-50"
+                className="w-full bg-foreground text-background py-4 text-sm sm:text-base tracking-[0.15em] uppercase font-light hover:opacity-90 transition-opacity duration-150 min-h-[52px] flex items-center justify-center disabled:opacity-50"
               >
                 {cartLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : selectedVariant?.availableForSale ? "Add to Cart" : "Sold Out"}
               </button>
+              {/* Buy Now */}
+              <button
+                onClick={handleBuyNow}
+                disabled={cartLoading || !selectedVariant?.availableForSale}
+                className="w-full border-2 border-foreground py-4 text-sm sm:text-base tracking-[0.15em] uppercase font-light hover:bg-foreground hover:text-background transition-all duration-300 min-h-[52px] disabled:opacity-50"
+              >
+                Buy Now
+              </button>
+              {/* Make an Offer */}
               <button
                 onClick={() => setOfferOpen(true)}
-                className="w-full border border-foreground py-4 text-sm tracking-[0.2em] uppercase font-light hover:bg-foreground hover:text-background transition-all duration-300 min-h-[52px]"
+                className="w-full border border-border py-4 text-sm tracking-[0.15em] uppercase font-light hover:border-foreground transition-all duration-300 min-h-[52px] text-muted-foreground hover:text-foreground"
               >
                 Make an Offer
               </button>
@@ -206,7 +247,6 @@ const ProductPage = () => {
             {/* Description */}
             {product.description && (
               <div className="border-t border-border pt-6 mb-6">
-                <p className="text-xs tracking-[0.2em] uppercase font-light mb-3">Description</p>
                 <p className="text-sm font-light leading-relaxed text-muted-foreground">{product.description}</p>
               </div>
             )}
@@ -215,7 +255,7 @@ const ProductPage = () => {
             <div className="border-t border-border">
               <button
                 onClick={() => setShippingOpen(!shippingOpen)}
-                className="w-full flex items-center justify-between py-5 text-sm tracking-[0.15em] uppercase font-light"
+                className="w-full flex items-center justify-between py-5 text-sm tracking-[0.1em] uppercase font-light"
               >
                 Shipping
                 <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${shippingOpen ? "rotate-180" : ""}`} />
@@ -237,7 +277,7 @@ const ProductPage = () => {
             <div className="border-t border-border">
               <button
                 onClick={() => setReturnsOpen(!returnsOpen)}
-                className="w-full flex items-center justify-between py-5 text-sm tracking-[0.15em] uppercase font-light"
+                className="w-full flex items-center justify-between py-5 text-sm tracking-[0.1em] uppercase font-light"
               >
                 Returns & Exchanges
                 <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${returnsOpen ? "rotate-180" : ""}`} />
@@ -252,7 +292,7 @@ const ProductPage = () => {
             </div>
 
             <div className="border-t border-border pt-6">
-              <p className="text-xs tracking-[0.2em] uppercase font-light mb-3">Guaranteed Authenticity</p>
+              <p className="text-sm tracking-[0.1em] uppercase font-light mb-3">Guaranteed Authenticity</p>
               <p className="text-sm font-light leading-relaxed text-muted-foreground">
                 Every item is rigorously authenticated by our experts. All photos are of the actual product you will receive.
               </p>
@@ -260,42 +300,114 @@ const ProductPage = () => {
           </div>
         </div>
 
-        {/* Related Products */}
-        {related.length > 0 && (
-          <section ref={relatedRef} className={`mt-24 transition-all duration-1000 ease-out ${relatedVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}>
-            <h2 className="text-base md:text-lg tracking-[0.35em] uppercase font-extralight mb-14 text-center">You May Also Like</h2>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-8">
-              {related.map((rp, i) => {
+        {/* Subscribe CTA sidebar-style banner */}
+        <div className="mt-16 sm:mt-20 md:mt-24">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-6 md:gap-8">
+            <div className="bg-foreground text-background p-8 sm:p-10 flex flex-col justify-center">
+              <p className="text-xs tracking-[0.2em] uppercase mb-3 opacity-70">Don't miss out</p>
+              <h3 className="text-lg sm:text-xl tracking-[0.1em] font-light mb-4 leading-snug">
+                Never Miss a New Arrival!
+              </h3>
+              <p className="text-sm font-light opacity-80 mb-6 leading-relaxed">
+                Subscribe now and be the first to know about exclusive drops, limited pieces, and member-only discounts. Stay ahead of the curve with FLTHYMRKT.
+              </p>
+              <Link to="/collection?filter=new" className="inline-block border border-background px-6 py-3 text-xs tracking-[0.2em] uppercase font-light hover:bg-background hover:text-foreground transition-all duration-300 text-center">
+                Shop New Arrivals
+              </Link>
+            </div>
+
+            {/* Related Products inline */}
+            {related.length > 0 && (
+              <div ref={relatedRef} className={`transition-all duration-1000 ease-out ${relatedVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}>
+                <h2 className="text-sm sm:text-base tracking-[0.25em] uppercase font-extralight mb-6">You May Also Like</h2>
+                <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6">
+                  {related.slice(0, 2).map((rp, i) => {
+                    const img = rp.node.images.edges[0]?.node;
+                    const hoverImg = rp.node.images.edges[1]?.node;
+                    const rpPrice = rp.node.priceRange.minVariantPrice;
+                    return (
+                      <Link key={rp.node.id} to={`/product/${rp.node.handle}`} className="group block"
+                        style={{
+                          transitionDelay: `${i * 100}ms`,
+                          opacity: relatedVisible ? 1 : 0,
+                          transform: relatedVisible ? 'translateY(0)' : 'translateY(20px)',
+                          transition: 'all 0.7s ease-out',
+                        }}>
+                        <div className="aspect-[3/4] overflow-hidden mb-3 bg-secondary relative">
+                          {img && (
+                            <img
+                              src={img.url}
+                              alt={img.altText || rp.node.title}
+                              className="w-full h-full object-cover transition-opacity duration-500"
+                              loading="lazy"
+                              onMouseEnter={(e) => { if (hoverImg) (e.target as HTMLImageElement).src = hoverImg.url; }}
+                              onMouseLeave={(e) => { if (hoverImg) (e.target as HTMLImageElement).src = img.url; }}
+                            />
+                          )}
+                          <button className="absolute top-3 right-3 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Bookmark className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <p className="text-xs tracking-[0.15em] uppercase font-light text-muted-foreground mb-0.5">{rp.node.vendor || ""}</p>
+                        <p className="text-sm tracking-[0.05em] font-normal mb-1">{rp.node.title}</p>
+                        <p className="text-xs tracking-[0.1em] font-light text-muted-foreground">
+                          ${parseFloat(rpPrice.amount).toLocaleString(undefined, { minimumFractionDigits: 0 })}
+                        </p>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* More related products */}
+          {related.length > 2 && (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mt-6 sm:mt-8">
+              {related.slice(2).map((rp, i) => {
                 const img = rp.node.images.edges[0]?.node;
+                const hoverImg = rp.node.images.edges[1]?.node;
                 const rpPrice = rp.node.priceRange.minVariantPrice;
                 return (
                   <Link key={rp.node.id} to={`/product/${rp.node.handle}`} className="group block"
                     style={{
-                      transitionDelay: `${i * 100}ms`,
+                      transitionDelay: `${(i + 2) * 100}ms`,
                       opacity: relatedVisible ? 1 : 0,
                       transform: relatedVisible ? 'translateY(0)' : 'translateY(20px)',
                       transition: 'all 0.7s ease-out',
                     }}>
-                    <div className="aspect-[3/4] overflow-hidden mb-4 bg-secondary">
-                      {img && <img src={img.url} alt={img.altText || rp.node.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />}
+                    <div className="aspect-[3/4] overflow-hidden mb-3 bg-secondary relative">
+                      {img && (
+                        <img
+                          src={img.url}
+                          alt={img.altText || rp.node.title}
+                          className="w-full h-full object-cover transition-opacity duration-500"
+                          loading="lazy"
+                          onMouseEnter={(e) => { if (hoverImg) (e.target as HTMLImageElement).src = hoverImg.url; }}
+                          onMouseLeave={(e) => { if (hoverImg) (e.target as HTMLImageElement).src = img.url; }}
+                        />
+                      )}
+                      <button className="absolute top-3 right-3 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Bookmark className="w-4 h-4" />
+                      </button>
                     </div>
-                    <p className="text-xs tracking-[0.15em] uppercase font-light text-muted-foreground mb-1">{rp.node.vendor || "FLTHY MRKT"}</p>
-                    <p className="text-sm tracking-[0.1em] font-light mb-1">{rp.node.title}</p>
+                    <p className="text-xs tracking-[0.15em] uppercase font-light text-muted-foreground mb-0.5">{rp.node.vendor || ""}</p>
+                    <p className="text-sm tracking-[0.05em] font-normal mb-1">{rp.node.title}</p>
                     <p className="text-xs tracking-[0.1em] font-light text-muted-foreground">
-                      ${parseFloat(rpPrice.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      ${parseFloat(rpPrice.amount).toLocaleString(undefined, { minimumFractionDigits: 0 })}
                     </p>
                   </Link>
                 );
               })}
             </div>
-          </section>
-        )}
+          )}
+        </div>
       </div>
 
       <OfferModal
         isOpen={offerOpen}
         onClose={() => setOfferOpen(false)}
-        productId={product.id}
+        productId={shopifyProductId}
         productName={product.title}
         productPrice={parseFloat(price.amount)}
       />

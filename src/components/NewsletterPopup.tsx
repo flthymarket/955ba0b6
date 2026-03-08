@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import boarImage from "@/assets/newsletter-boar.png";
 
 const NewsletterPopup = () => {
   const [show, setShow] = useState(false);
@@ -18,7 +17,7 @@ const NewsletterPopup = () => {
     const subscribed = localStorage.getItem("newsletter_subscribed");
     const dismissed = sessionStorage.getItem("newsletter-dismissed");
     if (subscribed || dismissed) return;
-    const timer = setTimeout(() => setShow(true), 5000);
+    const timer = setTimeout(() => setShow(true), 4000);
     return () => clearTimeout(timer);
   }, [user]);
 
@@ -43,7 +42,6 @@ const NewsletterPopup = () => {
 
     localStorage.setItem("newsletter_subscribed", "true");
 
-    // Trigger welcome email via edge function
     try {
       await supabase.functions.invoke("newsletter-welcome", {
         body: { email: email.trim(), firstName: firstName.trim() },
@@ -67,13 +65,14 @@ const NewsletterPopup = () => {
         </button>
 
         {step === "offer" ? (
-          <div className="text-center px-6 py-8">
-            <img
-              src={boarImage}
-              alt="FLTHYMRKT"
-              className="w-40 h-40 object-contain mx-auto mb-6"
-            />
-            <h3 className="font-akira text-2xl md:text-3xl mb-1">SUBSCRIBE AND UNLOCK</h3>
+          <div className="text-center px-6 py-10">
+            {/* Large FLTHYMRKT text clipped at bottom */}
+            <div className="overflow-hidden h-24 sm:h-28 mb-6">
+              <p className="font-akira text-[52px] sm:text-[64px] leading-[0.85] text-foreground select-none translate-y-[5%]">
+                FLTHYMRKT
+              </p>
+            </div>
+            <h3 className="text-lg sm:text-xl tracking-[0.15em] uppercase font-light mb-1">Subscribe and Unlock</h3>
             <p className="text-base font-semibold tracking-wide mb-1">DISCOUNTS & UPDATES.</p>
             <p className="text-sm text-muted-foreground mb-8">Unlock benefits now!</p>
 
@@ -93,12 +92,12 @@ const NewsletterPopup = () => {
           </div>
         ) : (
           <div className="px-6 py-8">
-            <img
-              src={boarImage}
-              alt="FLTHYMRKT"
-              className="w-24 h-24 object-contain mx-auto mb-4"
-            />
-            <h3 className="text-lg tracking-[0.2em] uppercase font-light text-center mb-6">
+            <div className="overflow-hidden h-16 mb-4 mx-auto">
+              <p className="font-akira text-[40px] leading-[0.85] text-foreground select-none text-center translate-y-[5%]">
+                FLTHYMRKT
+              </p>
+            </div>
+            <h3 className="text-base sm:text-lg tracking-[0.15em] uppercase font-light text-center mb-6">
               Unlock Your Benefits
             </h3>
 

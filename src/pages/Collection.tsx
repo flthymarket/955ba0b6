@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Bookmark } from "lucide-react";
 import { storefrontApiRequest, PRODUCTS_QUERY, type ShopifyProduct } from "@/lib/shopify";
 import { useCartStore } from "@/stores/cartStore";
 import { toast } from "sonner";
@@ -22,7 +22,7 @@ const Collection = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const filter = searchParams.get("filter") || "all";
   const [sortOpen, setSortOpen] = useState(false);
-  const [filterOpen, setFilterOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(true);
   const [currentSort, setCurrentSort] = useState("Featured");
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,60 +65,21 @@ const Collection = () => {
     fetchProducts();
   }, [filter, currentSort]);
 
-  const handleQuickAdd = async (product: ShopifyProduct) => {
-    const variant = product.node.variants.edges[0]?.node;
-    if (!variant) return;
-    await addItem({
-      product,
-      variantId: variant.id,
-      variantTitle: variant.title,
-      price: variant.price,
-      quantity: 1,
-      selectedOptions: variant.selectedOptions || [],
-    });
-    toast.success("Added to bag");
-  };
-
   const pageTitle = filter && filter !== "all"
     ? filter === "new" ? "New Arrivals" : filter.charAt(0).toUpperCase() + filter.slice(1)
     : "All";
 
   return (
-    <main className="pt-28 sm:pt-32 md:pt-36 pb-20 animate-fade-in">
+    <main className="pt-6 sm:pt-8 md:pt-12 pb-20 animate-fade-in">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8">
-        <h1 className="text-xl md:text-2xl tracking-[0.35em] font-extralight uppercase text-center mb-8 md:mb-10">
-          {pageTitle}
-        </h1>
-
-        {/* Filters & Sort Bar */}
-        <div className="flex flex-wrap items-center justify-between mb-8 md:mb-10 border-b border-border pb-4 gap-4">
-          <div className="flex items-center gap-4 md:gap-6">
-            <span className="text-xs sm:text-sm text-muted-foreground tracking-widest uppercase">{products.length} products</span>
-
-            <div className="relative">
-              <button onClick={() => setFilterOpen(!filterOpen)} className="text-sm tracking-[0.15em] uppercase font-light flex items-center gap-2 hover-gray px-2 py-1 transition-all">
-                Categories <ChevronDown className="w-3 h-3" />
-              </button>
-              {filterOpen && (
-                <div className="absolute left-0 top-full mt-2 bg-background border border-border py-3 px-5 min-w-[200px] z-10 animate-fade-in">
-                  {categoryFilters.map((cat) => (
-                    <button key={cat.value}
-                      onClick={() => {
-                        setSearchParams(cat.value === "all" ? {} : { filter: cat.value });
-                        setFilterOpen(false);
-                      }}
-                      className={`block w-full text-left py-2.5 text-sm tracking-[0.1em] uppercase font-light transition-all hover-gray px-2 -mx-2 min-h-[40px] ${filter === cat.value ? "opacity-100 font-normal" : "opacity-50 hover:opacity-80"}`}>
-                      {cat.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
+        {/* Page title + count */}
+        <div className="flex items-baseline justify-between mb-6 sm:mb-8 md:mb-10">
+          <h1 className="text-lg sm:text-xl md:text-2xl tracking-[0.25em] font-extralight uppercase">
+            {pageTitle} <span className="text-muted-foreground text-sm font-light">({products.length})</span>
+          </h1>
           <div className="relative">
-            <button onClick={() => setSortOpen(!sortOpen)} className="text-sm tracking-[0.15em] uppercase font-light flex items-center gap-2 hover-gray px-2 py-1 transition-all">
-              {currentSort} <ChevronDown className="w-3 h-3" />
+            <button onClick={() => setSortOpen(!sortOpen)} className="text-sm tracking-[0.1em] uppercase font-light flex items-center gap-2 hover-gray px-2 py-1 transition-all">
+              Sort by: {currentSort} <ChevronDown className="w-3 h-3" />
             </button>
             {sortOpen && (
               <div className="absolute right-0 top-full mt-2 bg-background border border-border py-3 px-5 min-w-[220px] z-10 animate-fade-in">
@@ -133,62 +94,106 @@ const Collection = () => {
           </div>
         </div>
 
-        {loading ? (
-          <div className="text-center py-20">
-            <p className="text-muted-foreground text-sm tracking-widest uppercase">Loading...</p>
+        <div className="flex gap-8">
+          {/* Left sidebar filters - desktop only */}
+          <aside className="hidden lg:block w-[200px] flex-shrink-0">
+            <div className="sticky top-32">
+              <div className="mb-6">
+                <button onClick={() => setFilterOpen(!filterOpen)} className="flex items-center justify-between w-full text-sm tracking-[0.1em] uppercase font-light border-b border-foreground pb-2 mb-3">
+                  Category <ChevronDown className={`w-3 h-3 transition-transform ${filterOpen ? "rotate-180" : ""}`} />
+                </button>
+                {filterOpen && (
+                  <div className="space-y-1">
+                    {categoryFilters.map((cat) => (
+                      <button key={cat.value}
+                        onClick={() => setSearchParams(cat.value === "all" ? {} : { filter: cat.value })}
+                        className={`flex items-center gap-2 w-full text-left py-1.5 text-sm font-light transition-all ${filter === cat.value ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                        <span className={`w-4 h-4 border flex items-center justify-center ${filter === cat.value ? "border-foreground bg-foreground" : "border-border"}`}>
+                          {filter === cat.value && <span className="text-background text-[10px]">✓</span>}
+                        </span>
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </aside>
+
+          {/* Mobile filter bar */}
+          <div className="lg:hidden w-full mb-4">
+            <div className="flex items-center gap-4 overflow-x-auto pb-2 -mx-4 px-4">
+              {categoryFilters.map((cat) => (
+                <button key={cat.value}
+                  onClick={() => setSearchParams(cat.value === "all" ? {} : { filter: cat.value })}
+                  className={`text-xs tracking-[0.1em] uppercase font-light whitespace-nowrap px-3 py-2 border transition-all min-h-[36px] ${
+                    filter === cat.value ? "bg-foreground text-background border-foreground" : "border-border hover:border-foreground"
+                  }`}>
+                  {cat.label}
+                </button>
+              ))}
+            </div>
           </div>
-        ) : products.length === 0 ? (
-          <p className="text-center py-20 text-muted-foreground text-sm tracking-widest uppercase">No products found</p>
-        ) : (
-          <div ref={gridRef} className="grid gap-4 sm:gap-6 md:gap-8 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {products.map((product, i) => {
-              const img = product.node.images.edges[0]?.node;
-              const price = product.node.priceRange.minVariantPrice;
-              return (
-                <div key={product.node.id} className="group"
-                  style={{
-                    transitionDelay: `${i * 60}ms`,
-                    opacity: gridVisible ? 1 : 0,
-                    transform: gridVisible ? 'translateY(0)' : 'translateY(20px)',
-                    transition: 'all 0.6s ease-out',
-                  }}>
-                  <Link to={`/product/${product.node.handle}`} className="block hover-gray rounded-sm">
-                    <div className="aspect-[3/4] overflow-hidden mb-3 bg-secondary">
-                      {img ? (
-                        <img
-                          src={img.url}
-                          alt={img.altText || product.node.title}
-                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">No Image</div>
-                      )}
+
+          {/* Product grid */}
+          <div className="flex-1 min-w-0">
+            {loading ? (
+              <div className="text-center py-20">
+                <p className="text-muted-foreground text-sm tracking-widest uppercase">Loading...</p>
+              </div>
+            ) : products.length === 0 ? (
+              <p className="text-center py-20 text-muted-foreground text-sm tracking-widest uppercase">No products found</p>
+            ) : (
+              <div ref={gridRef} className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-2 lg:grid-cols-3">
+                {products.map((product, i) => {
+                  const img = product.node.images.edges[0]?.node;
+                  const hoverImg = product.node.images.edges[1]?.node;
+                  const price = product.node.priceRange.minVariantPrice;
+                  return (
+                    <div key={product.node.id} className="group"
+                      style={{
+                        transitionDelay: `${i * 60}ms`,
+                        opacity: gridVisible ? 1 : 0,
+                        transform: gridVisible ? 'translateY(0)' : 'translateY(20px)',
+                        transition: 'all 0.6s ease-out',
+                      }}>
+                      <Link to={`/product/${product.node.handle}`} className="block">
+                        <div className="aspect-[3/4] overflow-hidden mb-3 bg-secondary relative">
+                          {img ? (
+                            <img
+                              src={img.url}
+                              alt={img.altText || product.node.title}
+                              className="w-full h-full object-cover transition-opacity duration-500"
+                              loading="lazy"
+                              onMouseEnter={(e) => { if (hoverImg) (e.target as HTMLImageElement).src = hoverImg.url; }}
+                              onMouseLeave={(e) => { if (hoverImg) (e.target as HTMLImageElement).src = img.url; }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">No Image</div>
+                          )}
+                          <button className="absolute top-3 right-3 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            <Bookmark className="w-5 h-5 text-foreground" />
+                          </button>
+                        </div>
+                        <div className="px-1 pb-2">
+                          <p className="text-xs sm:text-sm tracking-[0.15em] uppercase font-light text-muted-foreground mb-0.5">
+                            {product.node.vendor || ""}
+                          </p>
+                          <p className="text-sm sm:text-base tracking-[0.05em] font-normal mb-1 leading-tight text-foreground">
+                            {product.node.title}
+                          </p>
+                          <p className="text-xs sm:text-sm tracking-[0.1em] font-light text-muted-foreground">
+                            ${parseFloat(price.amount).toLocaleString(undefined, { minimumFractionDigits: 0 })}
+                          </p>
+                        </div>
+                      </Link>
                     </div>
-                    <div className="px-1 pb-2">
-                      <p className="text-xs sm:text-sm tracking-[0.15em] uppercase font-light text-muted-foreground mb-1">
-                        {product.node.vendor || "FLTHY MRKT"}
-                      </p>
-                      <p className="text-sm sm:text-base tracking-[0.1em] font-light mb-1 leading-tight">
-                        {product.node.title}
-                      </p>
-                      <p className="text-xs sm:text-sm tracking-[0.1em] font-light text-muted-foreground">
-                        ${parseFloat(price.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                  </Link>
-                  <button
-                    onClick={() => handleQuickAdd(product)}
-                    disabled={isLoading}
-                    className="mt-2 w-full text-xs sm:text-sm tracking-[0.15em] uppercase font-light border border-border py-3 hover:bg-foreground hover:text-background transition-all duration-300 opacity-0 group-hover:opacity-100 min-h-[44px]"
-                  >
-                    Quick Add
-                  </button>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </main>
   );

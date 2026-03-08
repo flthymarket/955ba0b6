@@ -67,7 +67,7 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Poppins', sans-serif;
     font-weight: 300;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
   }
 }
@@ -90,12 +90,12 @@
   }
 
   .product-title {
-    @apply text-base tracking-[0.12em] uppercase font-light;
+    @apply text-base tracking-[0.05em] font-normal;
     font-family: 'Poppins', sans-serif;
   }
 
   .product-price {
-    @apply text-base tracking-[0.1em] font-light;
+    @apply text-sm tracking-[0.1em] font-light;
     font-family: 'Poppins', sans-serif;
   }
 
@@ -116,5 +116,37 @@
 
   .hover-gray:hover {
     background-color: hsl(var(--hover-highlight));
+  }
+
+  /* Marquee animation for announcement banner */
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  .animate-marquee {
+    animation: marquee 30s linear infinite;
+    display: flex;
+    gap: 2rem;
+    width: max-content;
+  }
+
+  /* Slide in animation */
+  @keyframes slide-in-right {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+
+  .animate-slide-in-right {
+    animation: slide-in-right 0.3s ease-out;
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.4s ease-out;
   }
 }
