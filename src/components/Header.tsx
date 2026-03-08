@@ -14,7 +14,6 @@ const navLinks = [
   { label: "All", href: "/collection" },
   { label: "Tops", href: "/collection?filter=tops" },
   { label: "Bottoms", href: "/collection?filter=bottoms" },
-  { label: "Outerwear", href: "/collection?filter=outerwear" },
   { label: "Accessories", href: "/collection?filter=accessories" },
 ];
 

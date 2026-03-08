@@ -11,7 +11,6 @@ const categoryFilters = [
   { label: "New Arrivals", value: "new" },
   { label: "Tops", value: "tops" },
   { label: "Bottoms", value: "bottoms" },
-  { label: "Outerwear", value: "outerwear" },
   { label: "Bags", value: "bags" },
   { label: "Jewelry", value: "jewelry" },
   { label: "Dresses", value: "dresses" },
@@ -144,7 +143,7 @@ const Collection = () => {
             ) : products.length === 0 ? (
               <p className="text-center py-20 text-muted-foreground text-sm tracking-widest uppercase">No products found</p>
             ) : (
-              <div ref={gridRef} className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-2 lg:grid-cols-3">
+              <div ref={gridRef} className="grid gap-x-4 gap-y-8 sm:gap-x-6 sm:gap-y-10 md:gap-x-8 md:gap-y-12 grid-cols-2 lg:grid-cols-3">
                 {products.map((product, i) => {
                   const img = product.node.images.edges[0]?.node;
                   const hoverImg = product.node.images.edges[1]?.node;
@@ -175,11 +174,11 @@ const Collection = () => {
                             <Bookmark className="w-5 h-5 text-foreground" />
                           </button>
                         </div>
-                        <div className="px-1 pb-2">
+                        <div className="px-1 pt-3 pb-2">
                           <p className="text-xs sm:text-sm tracking-[0.15em] uppercase font-light text-muted-foreground mb-0.5">
                             {product.node.vendor || ""}
                           </p>
-                          <p className="text-sm sm:text-base tracking-[0.05em] font-normal mb-1 leading-tight text-foreground">
+                          <p className="text-sm sm:text-base font-bold mb-1 leading-tight text-foreground" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
                             {product.node.title}
                           </p>
                           <p className="text-xs sm:text-sm tracking-[0.1em] font-light text-muted-foreground">
