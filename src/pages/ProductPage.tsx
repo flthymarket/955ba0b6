@@ -47,7 +47,7 @@ const ProductPage = () => {
         }
         const relData = await storefrontApiRequest(PRODUCTS_QUERY, { first: 4 });
         if (relData?.data?.products?.edges) {
-          setRelated(relData.data.products.edges.filter((rp: ShopifyProduct) => rp.node.handle !== handle).slice(0, 4));
+          setRelated(relData.data.products.edges.filter((rp: ShopifyProduct) => rp.node.handle !== handle).slice(0, 2));
         }
       } catch (err) {
         console.error("Failed to fetch product:", err);
