@@ -84,7 +84,7 @@ const Index = () => {
       // Default text hero
       return (
         <section className="relative w-full h-[40vh] sm:h-[45vh] md:h-[50vh] overflow-hidden flex flex-col items-center justify-center bg-background">
-        <h1 className="font-akira text-[22vw] sm:text-[20vw] md:text-[18vw] lg:text-[16vw] leading-[0.8] text-foreground select-none translate-y-[15%]" style={{ letterSpacing: '-0.03em' }}>
+          <h1 className="font-akira text-[18vw] sm:text-[16vw] md:text-[14vw] lg:text-[12vw] leading-[0.85] text-foreground select-none" style={{ letterSpacing: '-0.03em' }}>
             FLTHYMRKT
           </h1>
           <Link to="/collection" className="absolute bottom-6 sm:bottom-8 md:bottom-12 text-sm md:text-base tracking-[0.35em] uppercase font-light border-2 border-foreground px-8 sm:px-10 py-3 sm:py-4 bg-background hover-gray hover:border-foreground transition-all duration-300 z-10">
