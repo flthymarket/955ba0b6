@@ -47,7 +47,7 @@ const ProductPage = () => {
         }
         const relData = await storefrontApiRequest(PRODUCTS_QUERY, { first: 4 });
         if (relData?.data?.products?.edges) {
-          setRelated(relData.data.products.edges.filter((rp: ShopifyProduct) => rp.node.handle !== handle).slice(0, 4));
+          setRelated(relData.data.products.edges.filter((rp: ShopifyProduct) => rp.node.handle !== handle).slice(0, 2));
         }
       } catch (err) {
         console.error("Failed to fetch product:", err);
@@ -111,11 +111,15 @@ const ProductPage = () => {
       quantity,
       selectedOptions: selectedVariant.selectedOptions || []
     });
-    // Wait a tick for state to update then redirect
+    // Wait for cart to be created/updated then redirect to Shopify checkout
     setTimeout(() => {
       const checkoutUrl = getCheckoutUrl();
-      if (checkoutUrl) window.open(checkoutUrl, '_blank');
-    }, 500);
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl;
+      } else {
+        toast.error("Checkout not ready, please try again");
+      }
+    }, 1000);
   };
 
   // Extract Shopify numeric ID from GID for offers (store full GID as text)
@@ -162,14 +166,7 @@ const ProductPage = () => {
 
           {/* Details - formatted like Justin Reed / Sheng Li */}
           <div className="lg:pt-4">
-            {/* Brand/Vendor in gray */}
-            
-
-            
-            {/* Vendor in gray */}
-            {product.vendor && (
-              <p className="text-sm tracking-[0.15em] uppercase font-light text-muted-foreground mb-1">{product.vendor}</p>
-            )}
+            {/* Product title - bold Arial */}
             {/* Product title - bold Arial */}
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-3 leading-tight text-foreground" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>{product.title}</h1>
             {/* Price */}
@@ -329,7 +326,7 @@ const ProductPage = () => {
             {/* Related Products inline */}
             {related.length > 0 &&
             <div ref={relatedRef} className={`transition-all duration-1000 ease-out ${relatedVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}>
-                <h2 className="text-sm sm:text-base tracking-[0.25em] uppercase font-extralight mb-6">You May Also Like</h2>
+                <h2 className="text-xs tracking-[0.2em] uppercase font-extralight mb-4">You May Also Like</h2>
                 <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6">
                   {related.slice(0, 2).map((rp, i) => {
                   const img = rp.node.images.edges[0]?.node;
@@ -358,8 +355,7 @@ const ProductPage = () => {
                             <Bookmark className="w-4 h-4" />
                           </button>
                         </div>
-                        <p className="text-xs tracking-[0.15em] uppercase font-light text-muted-foreground mb-0.5">{rp.node.vendor || ""}</p>
-                        <p className="text-sm tracking-[0.05em] font-normal mb-1">{rp.node.title}</p>
+                <p className="text-xs tracking-[0.05em] font-bold mb-1" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>{rp.node.title}</p>
                         <p className="text-xs tracking-[0.1em] font-light text-muted-foreground">
                           ${parseFloat(rpPrice.amount).toLocaleString(undefined, { minimumFractionDigits: 0 })}
                         </p>
@@ -371,46 +367,6 @@ const ProductPage = () => {
             }
           </div>
 
-          {/* More related products */}
-          {related.length > 2 &&
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mt-6 sm:mt-8">
-              {related.slice(2).map((rp, i) => {
-              const img = rp.node.images.edges[0]?.node;
-              const hoverImg = rp.node.images.edges[1]?.node;
-              const rpPrice = rp.node.priceRange.minVariantPrice;
-              return (
-                <Link key={rp.node.id} to={`/product/${rp.node.handle}`} className="group block"
-                style={{
-                  transitionDelay: `${(i + 2) * 100}ms`,
-                  opacity: relatedVisible ? 1 : 0,
-                  transform: relatedVisible ? 'translateY(0)' : 'translateY(20px)',
-                  transition: 'all 0.7s ease-out'
-                }}>
-                    <div className="aspect-[3/4] overflow-hidden mb-3 bg-secondary relative">
-                      {img &&
-                    <img
-                      src={img.url}
-                      alt={img.altText || rp.node.title}
-                      className="w-full h-full object-cover transition-opacity duration-500"
-                      loading="lazy"
-                      onMouseEnter={(e) => {if (hoverImg) (e.target as HTMLImageElement).src = hoverImg.url;}}
-                      onMouseLeave={(e) => {if (hoverImg) (e.target as HTMLImageElement).src = img.url;}} />
-
-                    }
-                      <button className="absolute top-3 right-3 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Bookmark className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <p className="text-xs tracking-[0.15em] uppercase font-light text-muted-foreground mb-0.5">{rp.node.vendor || ""}</p>
-                    <p className="text-sm tracking-[0.05em] font-normal mb-1">{rp.node.title}</p>
-                    <p className="text-xs tracking-[0.1em] font-light text-muted-foreground">
-                      ${parseFloat(rpPrice.amount).toLocaleString(undefined, { minimumFractionDigits: 0 })}
-                    </p>
-                  </Link>);
-
-            })}
-            </div>
-          }
         </div>
       </div>
 

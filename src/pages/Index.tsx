@@ -44,7 +44,7 @@ const Index = () => {
     const fetchAll = async () => {
       try {
         const [prodData, heroData] = await Promise.all([
-          storefrontApiRequest(PRODUCTS_QUERY, { first: 8 }),
+          storefrontApiRequest(PRODUCTS_QUERY, { first: 4 }),
           supabase.from("hero_banners").select("*").eq("enabled", true).order("sort_order").limit(1).single(),
         ]);
         if (prodData?.data?.products?.edges) setProducts(prodData.data.products.edges);
@@ -84,7 +84,7 @@ const Index = () => {
       // Default text hero
       return (
         <section className="relative w-full h-[40vh] sm:h-[45vh] md:h-[50vh] overflow-hidden flex flex-col items-center justify-center bg-background">
-          <h1 className="font-akira text-[16vw] sm:text-[14vw] md:text-[12vw] lg:text-[10vw] leading-[0.85] text-foreground select-none translate-y-[20%]" style={{ letterSpacing: '-0.02em' }}>
+        <h1 className="font-akira text-[22vw] sm:text-[20vw] md:text-[18vw] lg:text-[16vw] leading-[0.8] text-foreground select-none translate-y-[15%]" style={{ letterSpacing: '-0.03em' }}>
             FLTHYMRKT
           </h1>
           <Link to="/collection" className="absolute bottom-6 sm:bottom-8 md:bottom-12 text-sm md:text-base tracking-[0.35em] uppercase font-light border-2 border-foreground px-8 sm:px-10 py-3 sm:py-4 bg-background hover-gray hover:border-foreground transition-all duration-300 z-10">
@@ -111,7 +111,7 @@ const Index = () => {
     // Default: text display
     return (
       <section className="relative w-full h-[40vh] sm:h-[45vh] md:h-[50vh] overflow-hidden flex flex-col items-center justify-center bg-background">
-        <h1 className="font-akira text-[16vw] sm:text-[14vw] md:text-[12vw] lg:text-[10vw] leading-[0.85] text-foreground select-none translate-y-[20%]" style={{ letterSpacing: '-0.02em' }}>
+        <h1 className="font-akira text-[22vw] sm:text-[20vw] md:text-[18vw] lg:text-[16vw] leading-[0.8] text-foreground select-none translate-y-[15%]" style={{ letterSpacing: '-0.03em' }}>
           {hero.title || "FLTHYMRKT"}
         </h1>
         {hero.subtitle && <p className="text-sm sm:text-base tracking-[0.3em] uppercase font-light text-muted-foreground mt-4">{hero.subtitle}</p>}
@@ -160,7 +160,7 @@ const Index = () => {
                     }}
                   >
                     <Link to={`/product/${product.node.handle}`} className="block">
-                      <div className="aspect-[3/4] overflow-hidden mb-3 bg-secondary relative">
+                      <div className="aspect-[4/5] overflow-hidden mb-3 bg-secondary relative">
                         {img ? (
                           <img
                             src={img.url}
@@ -183,10 +183,7 @@ const Index = () => {
                         </button>
                       </div>
                       <div className="px-1 pb-2">
-                        <p className="text-xs sm:text-sm tracking-[0.15em] uppercase font-light text-muted-foreground mb-0.5">
-                          {product.node.vendor || "FLTHY MRKT"}
-                        </p>
-                        <p className="text-sm sm:text-base tracking-[0.05em] font-normal mb-1 leading-tight text-foreground">
+                        <p className="text-sm sm:text-base tracking-[0.05em] font-bold mb-1 leading-tight text-foreground" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
                           {product.node.title}
                         </p>
                         <p className="text-xs sm:text-sm tracking-[0.1em] font-light text-muted-foreground">

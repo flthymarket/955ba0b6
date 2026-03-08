@@ -143,7 +143,7 @@ const Collection = () => {
             ) : products.length === 0 ? (
               <p className="text-center py-20 text-muted-foreground text-sm tracking-widest uppercase">No products found</p>
             ) : (
-              <div ref={gridRef} className="grid gap-x-6 gap-y-10 sm:gap-x-8 sm:gap-y-12 md:gap-x-10 md:gap-y-14 grid-cols-2 lg:grid-cols-3">
+              <div ref={gridRef} className="grid gap-x-8 gap-y-12 sm:gap-x-10 sm:gap-y-14 md:gap-x-12 md:gap-y-16 grid-cols-2 lg:grid-cols-3">
                 {products.map((product, i) => {
                   const img = product.node.images.edges[0]?.node;
                   const hoverImg = product.node.images.edges[1]?.node;
@@ -157,7 +157,7 @@ const Collection = () => {
                         transition: 'all 0.6s ease-out',
                       }}>
                       <Link to={`/product/${product.node.handle}`} className="block">
-                        <div className="aspect-[3/4] overflow-hidden mb-3 bg-secondary relative">
+                        <div className="aspect-[4/5] overflow-hidden mb-3 bg-secondary relative">
                           {img ? (
                             <img
                               src={img.url}
@@ -175,9 +175,6 @@ const Collection = () => {
                           </button>
                         </div>
                         <div className="px-1 pt-3 pb-2">
-                          <p className="text-xs sm:text-sm tracking-[0.15em] uppercase font-light text-muted-foreground mb-0.5">
-                            {product.node.vendor || ""}
-                          </p>
                           <p className="text-sm sm:text-base font-bold mb-1 leading-tight text-foreground" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
                             {product.node.title}
                           </p>
