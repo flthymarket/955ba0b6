@@ -44,7 +44,7 @@ const Index = () => {
     const fetchAll = async () => {
       try {
         const [prodData, heroData] = await Promise.all([
-          storefrontApiRequest(PRODUCTS_QUERY, { first: 8 }),
+          storefrontApiRequest(PRODUCTS_QUERY, { first: 4 }),
           supabase.from("hero_banners").select("*").eq("enabled", true).order("sort_order").limit(1).single(),
         ]);
         if (prodData?.data?.products?.edges) setProducts(prodData.data.products.edges);
