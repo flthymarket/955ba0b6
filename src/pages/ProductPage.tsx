@@ -322,7 +322,7 @@ const ProductPage = () => {
             {/* Related Products inline */}
             {related.length > 0 &&
             <div ref={relatedRef} className={`transition-all duration-1000 ease-out ${relatedVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}>
-                <h2 className="text-sm sm:text-base tracking-[0.25em] uppercase font-extralight mb-6">You May Also Like</h2>
+                <h2 className="text-xs tracking-[0.2em] uppercase font-extralight mb-4">You May Also Like</h2>
                 <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6">
                   {related.slice(0, 2).map((rp, i) => {
                   const img = rp.node.images.edges[0]?.node;
