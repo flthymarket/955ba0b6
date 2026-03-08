@@ -189,6 +189,66 @@ export type Database = {
         }
         Relationships: []
       }
+      hero_banners: {
+        Row: {
+          button_text: string | null
+          created_at: string | null
+          display_type: string | null
+          enabled: boolean | null
+          id: string
+          image_url: string | null
+          link_url: string | null
+          sort_order: number | null
+          subtitle: string | null
+          title: string | null
+        }
+        Insert: {
+          button_text?: string | null
+          created_at?: string | null
+          display_type?: string | null
+          enabled?: boolean | null
+          id?: string
+          image_url?: string | null
+          link_url?: string | null
+          sort_order?: number | null
+          subtitle?: string | null
+          title?: string | null
+        }
+        Update: {
+          button_text?: string | null
+          created_at?: string | null
+          display_type?: string | null
+          enabled?: boolean | null
+          id?: string
+          image_url?: string | null
+          link_url?: string | null
+          sort_order?: number | null
+          subtitle?: string | null
+          title?: string | null
+        }
+        Relationships: []
+      }
+      new_arrivals: {
+        Row: {
+          added_at: string | null
+          id: string
+          product_title: string | null
+          shopify_handle: string
+        }
+        Insert: {
+          added_at?: string | null
+          id?: string
+          product_title?: string | null
+          shopify_handle: string
+        }
+        Update: {
+          added_at?: string | null
+          id?: string
+          product_title?: string | null
+          shopify_handle?: string
+        }
+        Relationships: []
+      }
       newsletter_subscribers: {
         Row: {
           created_at: string | null
@@ -250,15 +310,7 @@ export type Database = {
           status?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "offers_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       order_items: {
         Row: {
