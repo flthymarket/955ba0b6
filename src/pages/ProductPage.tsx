@@ -344,15 +344,13 @@ const ProductPage = () => {
                       transform: relatedVisible ? 'translateY(0)' : 'translateY(20px)',
                       transition: 'all 0.7s ease-out'
                     }}>
-                        <div className="aspect-[3/4] overflow-hidden mb-3 bg-secondary relative p-3">
+                        <div className="aspect-[3/4] overflow-hidden mb-3 bg-transparent relative p-3">
                           {img &&
                         <img
                           src={img.url}
                           alt={img.altText || rp.node.title}
-                          className="w-full h-full object-contain transition-opacity duration-500"
-                          loading="lazy"
-                          onMouseEnter={(e) => {if (hoverImg) (e.target as HTMLImageElement).src = hoverImg.url;}}
-                          onMouseLeave={(e) => {if (hoverImg) (e.target as HTMLImageElement).src = img.url;}} />
+                          className="w-full h-full object-contain"
+                          loading="lazy" />
 
                         }
                           <button className="absolute top-3 right-3 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
