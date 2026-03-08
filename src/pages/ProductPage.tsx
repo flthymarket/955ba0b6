@@ -115,7 +115,12 @@ const ProductPage = () => {
     await new Promise(resolve => setTimeout(resolve, 500));
     const checkoutUrl = useCartStore.getState().checkoutUrl;
     if (checkoutUrl) {
-      window.location.href = checkoutUrl;
+      try {
+        window.location.href = checkoutUrl;
+      } catch (e) {
+        // Fallback for iframe/cross-origin restrictions
+        window.open(checkoutUrl, '_blank');
+      }
     } else {
       toast.error("Checkout not ready, please try again");
     }
