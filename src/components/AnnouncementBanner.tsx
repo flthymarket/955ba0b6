@@ -78,10 +78,10 @@ const AnnouncementBanner = () => {
 
   const content =
   <div className={`h-10 flex items-center overflow-hidden ${bg}`}>
-      <div className="animate-marquee flex">
-        {marqueeText}
-        {marqueeText}
-      </div>
+      
+
+
+    
     </div>;
 
 
