@@ -351,8 +351,7 @@ const ProductPage = () => {
                             <Bookmark className="w-4 h-4" />
                           </button>
                         </div>
-                        <p className="text-xs tracking-[0.15em] uppercase font-light text-muted-foreground mb-0.5">{rp.node.vendor || ""}</p>
-                        <p className="text-sm tracking-[0.05em] font-normal mb-1">{rp.node.title}</p>
+                <p className="text-xs tracking-[0.05em] font-bold mb-1" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>{rp.node.title}</p>
                         <p className="text-xs tracking-[0.1em] font-light text-muted-foreground">
                           ${parseFloat(rpPrice.amount).toLocaleString(undefined, { minimumFractionDigits: 0 })}
                         </p>
