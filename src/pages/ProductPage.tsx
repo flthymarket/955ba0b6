@@ -339,7 +339,7 @@ const ProductPage = () => {
                       transform: relatedVisible ? 'translateY(0)' : 'translateY(20px)',
                       transition: 'all 0.7s ease-out'
                     }}>
-                        <div className="aspect-[3/4] overflow-hidden mb-3 bg-secondary relative">
+                        <div className="aspect-[3/4] overflow-hidden mb-3 bg-secondary relative p-3">
                           {img &&
                         <img
                           src={img.url}
