@@ -24,6 +24,9 @@ import AdminOrders from "./pages/admin/AdminOrders";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminNewsletter from "./pages/admin/AdminNewsletter";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminHero from "./pages/admin/AdminHero";
+import AdminAnnouncements from "./pages/admin/AdminAnnouncements";
+import AdminNewArrivals from "./pages/admin/AdminNewArrivals";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +44,9 @@ const AppContent = () => {
       <Route path="/admin/users" element={<AdminUsers />} />
       <Route path="/admin/newsletter" element={<AdminNewsletter />} />
       <Route path="/admin/settings" element={<AdminSettings />} />
+      <Route path="/admin/hero" element={<AdminHero />} />
+      <Route path="/admin/announcements" element={<AdminAnnouncements />} />
+      <Route path="/admin/new-arrivals" element={<AdminNewArrivals />} />
 
       {/* Public routes */}
       <Route path="/" element={<Layout><Index /></Layout>} />
