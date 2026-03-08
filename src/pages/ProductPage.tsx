@@ -166,8 +166,12 @@ const ProductPage = () => {
             
 
             
-            {/* Product title - bold/medium weight */}
-            <h1 className="text-xl sm:text-2xl md:text-3xl tracking-[0.03em] font-medium mb-3 leading-tight text-foreground">{product.title}</h1>
+            {/* Vendor in gray */}
+            {product.vendor && (
+              <p className="text-sm tracking-[0.15em] uppercase font-light text-muted-foreground mb-1">{product.vendor}</p>
+            )}
+            {/* Product title - bold Arial */}
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-3 leading-tight text-foreground" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>{product.title}</h1>
             {/* Price */}
             <p className="text-base sm:text-lg tracking-[0.05em] font-light text-foreground mb-8">
               ${parseFloat(price.amount).toLocaleString(undefined, { minimumFractionDigits: 0 })}
