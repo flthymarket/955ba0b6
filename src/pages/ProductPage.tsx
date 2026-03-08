@@ -115,11 +115,11 @@ const ProductPage = () => {
     setTimeout(() => {
       const checkoutUrl = getCheckoutUrl();
       if (checkoutUrl) {
-        window.location.href = checkoutUrl;
+        window.open(checkoutUrl, '_blank');
       } else {
         toast.error("Checkout not ready, please try again");
       }
-    }, 1000);
+    }, 1500);
   };
 
   // Extract Shopify numeric ID from GID for offers (store full GID as text)
@@ -345,7 +345,7 @@ const ProductPage = () => {
                         <img
                           src={img.url}
                           alt={img.altText || rp.node.title}
-                          className="w-full h-full object-cover transition-opacity duration-500"
+                          className="w-full h-full object-contain transition-opacity duration-500"
                           loading="lazy"
                           onMouseEnter={(e) => {if (hoverImg) (e.target as HTMLImageElement).src = hoverImg.url;}}
                           onMouseLeave={(e) => {if (hoverImg) (e.target as HTMLImageElement).src = img.url;}} />

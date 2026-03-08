@@ -157,12 +157,12 @@ const Collection = () => {
                         transition: 'all 0.6s ease-out',
                       }}>
                       <Link to={`/product/${product.node.handle}`} className="block">
-                        <div className="aspect-[4/5] overflow-hidden mb-3 bg-secondary relative">
+                        <div className="aspect-[3/4] overflow-hidden mb-3 bg-secondary relative">
                           {img ? (
                             <img
                               src={img.url}
                               alt={img.altText || product.node.title}
-                              className="w-full h-full object-cover transition-opacity duration-500"
+                              className="w-full h-full object-contain transition-opacity duration-500"
                               loading="lazy"
                               onMouseEnter={(e) => { if (hoverImg) (e.target as HTMLImageElement).src = hoverImg.url; }}
                               onMouseLeave={(e) => { if (hoverImg) (e.target as HTMLImageElement).src = img.url; }}
