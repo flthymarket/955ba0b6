@@ -111,15 +111,14 @@ const ProductPage = () => {
       quantity,
       selectedOptions: selectedVariant.selectedOptions || []
     });
-    // Wait for cart to be created/updated then redirect to Shopify checkout
-    setTimeout(() => {
-      const checkoutUrl = getCheckoutUrl();
-      if (checkoutUrl) {
-        window.open(checkoutUrl, '_blank');
-      } else {
-        toast.error("Checkout not ready, please try again");
-      }
-    }, 1500);
+    // Small delay to let cart state update, then redirect
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const checkoutUrl = useCartStore.getState().checkoutUrl;
+    if (checkoutUrl) {
+      window.location.href = checkoutUrl;
+    } else {
+      toast.error("Checkout not ready, please try again");
+    }
   };
 
   // Extract Shopify numeric ID from GID for offers (store full GID as text)
@@ -142,9 +141,9 @@ const ProductPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10 lg:gap-16">
           {/* Images */}
           <div>
-            <div className="aspect-[3/4] bg-secondary overflow-hidden mb-3 relative">
+            <div className="aspect-[3/4] bg-secondary overflow-hidden mb-3 relative p-6">
               {mainImage ?
-              <img src={mainImage.url} alt={mainImage.altText || product.title} className="w-full h-full object-cover" /> :
+              <img src={mainImage.url} alt={mainImage.altText || product.title} className="w-full h-full object-contain" /> :
 
               <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">No Image</div>
               }
@@ -340,7 +339,7 @@ const ProductPage = () => {
                       transform: relatedVisible ? 'translateY(0)' : 'translateY(20px)',
                       transition: 'all 0.7s ease-out'
                     }}>
-                        <div className="aspect-[3/4] overflow-hidden mb-3 bg-secondary relative">
+                        <div className="aspect-[3/4] overflow-hidden mb-3 bg-secondary relative p-3">
                           {img &&
                         <img
                           src={img.url}

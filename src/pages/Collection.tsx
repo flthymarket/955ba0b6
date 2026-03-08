@@ -157,7 +157,7 @@ const Collection = () => {
                         transition: 'all 0.6s ease-out',
                       }}>
                       <Link to={`/product/${product.node.handle}`} className="block">
-                        <div className="aspect-[3/4] overflow-hidden mb-3 bg-secondary relative">
+                        <div className="aspect-[3/4] overflow-hidden mb-3 bg-secondary relative p-4">
                           {img ? (
                             <img
                               src={img.url}
