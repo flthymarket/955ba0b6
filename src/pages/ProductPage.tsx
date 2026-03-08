@@ -363,46 +363,6 @@ const ProductPage = () => {
             }
           </div>
 
-          {/* More related products */}
-          {related.length > 2 &&
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mt-6 sm:mt-8">
-              {related.slice(2).map((rp, i) => {
-              const img = rp.node.images.edges[0]?.node;
-              const hoverImg = rp.node.images.edges[1]?.node;
-              const rpPrice = rp.node.priceRange.minVariantPrice;
-              return (
-                <Link key={rp.node.id} to={`/product/${rp.node.handle}`} className="group block"
-                style={{
-                  transitionDelay: `${(i + 2) * 100}ms`,
-                  opacity: relatedVisible ? 1 : 0,
-                  transform: relatedVisible ? 'translateY(0)' : 'translateY(20px)',
-                  transition: 'all 0.7s ease-out'
-                }}>
-                    <div className="aspect-[3/4] overflow-hidden mb-3 bg-secondary relative">
-                      {img &&
-                    <img
-                      src={img.url}
-                      alt={img.altText || rp.node.title}
-                      className="w-full h-full object-cover transition-opacity duration-500"
-                      loading="lazy"
-                      onMouseEnter={(e) => {if (hoverImg) (e.target as HTMLImageElement).src = hoverImg.url;}}
-                      onMouseLeave={(e) => {if (hoverImg) (e.target as HTMLImageElement).src = img.url;}} />
-
-                    }
-                      <button className="absolute top-3 right-3 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Bookmark className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <p className="text-xs tracking-[0.15em] uppercase font-light text-muted-foreground mb-0.5">{rp.node.vendor || ""}</p>
-                    <p className="text-sm tracking-[0.05em] font-normal mb-1">{rp.node.title}</p>
-                    <p className="text-xs tracking-[0.1em] font-light text-muted-foreground">
-                      ${parseFloat(rpPrice.amount).toLocaleString(undefined, { minimumFractionDigits: 0 })}
-                    </p>
-                  </Link>);
-
-            })}
-            </div>
-          }
         </div>
       </div>
 
