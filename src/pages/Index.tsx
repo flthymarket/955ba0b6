@@ -83,11 +83,11 @@ const Index = () => {
     if (!hero) {
       // Default text hero
       return (
-        <section className="relative w-full h-[40vh] sm:h-[45vh] md:h-[50vh] overflow-hidden flex flex-col items-center justify-center bg-background">
-          <h1 className="font-akira text-[18vw] sm:text-[16vw] md:text-[14vw] lg:text-[12vw] leading-[0.85] text-foreground select-none" style={{ letterSpacing: '-0.03em' }}>
+        <section className="relative w-full h-[50vh] sm:h-[55vh] md:h-[60vh] overflow-hidden flex flex-col items-center justify-center bg-background">
+          <h1 className="font-akira text-[15vw] sm:text-[13vw] md:text-[11vw] lg:text-[9vw] leading-[0.9] text-foreground select-none" style={{ letterSpacing: '-0.02em' }}>
             FLTHYMRKT
           </h1>
-          <Link to="/collection" className="absolute bottom-6 sm:bottom-8 md:bottom-12 text-sm md:text-base tracking-[0.35em] uppercase font-light border-2 border-foreground px-8 sm:px-10 py-3 sm:py-4 bg-background hover-gray hover:border-foreground transition-all duration-300 z-10">
+          <Link to="/collection" className="mt-8 sm:mt-10 text-sm md:text-base tracking-[0.35em] uppercase font-light border-2 border-foreground px-8 sm:px-10 py-3 sm:py-4 bg-background hover-gray hover:border-foreground transition-all duration-300 z-10">
             Shop Now
           </Link>
         </section>
