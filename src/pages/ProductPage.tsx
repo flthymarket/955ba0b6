@@ -143,7 +143,7 @@ const ProductPage = () => {
           <div>
             <div className="aspect-[3/4] bg-secondary overflow-hidden mb-3 relative p-6">
               {mainImage ?
-              <img src={mainImage.url} alt={mainImage.altText || product.title} className="w-full h-full object-cover" /> :
+              <img src={mainImage.url} alt={mainImage.altText || product.title} className="w-full h-full object-contain" /> :
 
               <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">No Image</div>
               }
