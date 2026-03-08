@@ -162,14 +162,7 @@ const ProductPage = () => {
 
           {/* Details - formatted like Justin Reed / Sheng Li */}
           <div className="lg:pt-4">
-            {/* Brand/Vendor in gray */}
-            
-
-            
-            {/* Vendor in gray */}
-            {product.vendor && (
-              <p className="text-sm tracking-[0.15em] uppercase font-light text-muted-foreground mb-1">{product.vendor}</p>
-            )}
+            {/* Product title - bold Arial */}
             {/* Product title - bold Arial */}
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-3 leading-tight text-foreground" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>{product.title}</h1>
             {/* Price */}
