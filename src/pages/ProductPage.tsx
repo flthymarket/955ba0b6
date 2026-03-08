@@ -128,7 +128,9 @@ const ProductPage = () => {
         <nav className="mb-4 sm:mb-6 md:mb-8">
           <span className="text-xs sm:text-sm tracking-widest text-muted-foreground font-light">
             <Link to="/" className="hover-gray px-1 py-0.5 transition-all">HOME</Link>{" / "}
-            <Link to="/collection" className="hover-gray px-1 py-0.5 transition-all">COLLECTION</Link>{" / "}
+            <Link to={`/collection?filter=${product.productType?.toLowerCase() || 'all'}`} className="hover-gray px-1 py-0.5 transition-all">
+              {(product.productType || "COLLECTION").toUpperCase()}
+            </Link>{" / "}
             <span className="text-foreground">{product.title.toUpperCase()}</span>
           </span>
         </nav>
