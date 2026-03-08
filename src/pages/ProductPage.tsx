@@ -111,15 +111,14 @@ const ProductPage = () => {
       quantity,
       selectedOptions: selectedVariant.selectedOptions || []
     });
-    // Wait for cart to be created/updated then redirect to Shopify checkout
-    setTimeout(() => {
-      const checkoutUrl = getCheckoutUrl();
-      if (checkoutUrl) {
-        window.open(checkoutUrl, '_blank');
-      } else {
-        toast.error("Checkout not ready, please try again");
-      }
-    }, 1500);
+    // Small delay to let cart state update, then redirect
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const checkoutUrl = useCartStore.getState().checkoutUrl;
+    if (checkoutUrl) {
+      window.location.href = checkoutUrl;
+    } else {
+      toast.error("Checkout not ready, please try again");
+    }
   };
 
   // Extract Shopify numeric ID from GID for offers (store full GID as text)
