@@ -64,7 +64,7 @@ const AnnouncementBanner = () => {
           Ends in <span className="font-mono tabular-nums">{timeLeft}</span>
         </span>
     }
-      <span>★</span>
+      
       <span>{announcement.banner_text}</span>
       {announcement.subtext && <span>{announcement.subtext}</span>}
       <span>★</span>
