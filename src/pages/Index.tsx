@@ -165,7 +165,7 @@ const Index = () => {
                           <img
                             src={img.url}
                             alt={img.altText || product.node.title}
-                            className="w-full h-full object-cover transition-opacity duration-500"
+                            className="w-full h-full object-contain transition-opacity duration-500"
                             loading="lazy"
                             style={{ opacity: 1 }}
                             onMouseEnter={(e) => {
