@@ -250,10 +250,14 @@ const ProductPage = () => {
               </button>
             </div>
 
-            {/* Description */}
+            {/* Description - list format */}
             {product.description &&
             <div className="border-t border-border pt-6 mb-6">
-                <p className="text-sm font-light leading-relaxed text-muted-foreground">{product.description}</p>
+                <ul className="text-sm font-light leading-relaxed text-muted-foreground space-y-2 list-disc list-inside">
+                  {product.description.split(/[.\n]+/).filter((s: string) => s.trim()).map((line: string, i: number) => (
+                    <li key={i}>{line.trim()}</li>
+                  ))}
+                </ul>
               </div>
             }
 
