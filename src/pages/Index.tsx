@@ -111,7 +111,7 @@ const Index = () => {
     // Default: text display
     return (
       <section className="relative w-full h-[40vh] sm:h-[45vh] md:h-[50vh] overflow-hidden flex flex-col items-center justify-center bg-background">
-        <h1 className="font-akira text-[16vw] sm:text-[14vw] md:text-[12vw] lg:text-[10vw] leading-[0.85] text-foreground select-none translate-y-[20%]" style={{ letterSpacing: '-0.02em' }}>
+        <h1 className="font-akira text-[22vw] sm:text-[20vw] md:text-[18vw] lg:text-[16vw] leading-[0.8] text-foreground select-none translate-y-[15%]" style={{ letterSpacing: '-0.03em' }}>
           {hero.title || "FLTHYMRKT"}
         </h1>
         {hero.subtitle && <p className="text-sm sm:text-base tracking-[0.3em] uppercase font-light text-muted-foreground mt-4">{hero.subtitle}</p>}
