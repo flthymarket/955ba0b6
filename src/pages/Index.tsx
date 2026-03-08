@@ -183,10 +183,7 @@ const Index = () => {
                         </button>
                       </div>
                       <div className="px-1 pb-2">
-                        <p className="text-xs sm:text-sm tracking-[0.15em] uppercase font-light text-muted-foreground mb-0.5">
-                          {product.node.vendor || "FLTHY MRKT"}
-                        </p>
-                        <p className="text-sm sm:text-base tracking-[0.05em] font-normal mb-1 leading-tight text-foreground">
+                        <p className="text-sm sm:text-base tracking-[0.05em] font-bold mb-1 leading-tight text-foreground" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
                           {product.node.title}
                         </p>
                         <p className="text-xs sm:text-sm tracking-[0.1em] font-light text-muted-foreground">

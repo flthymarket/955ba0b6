@@ -143,7 +143,7 @@ const Collection = () => {
             ) : products.length === 0 ? (
               <p className="text-center py-20 text-muted-foreground text-sm tracking-widest uppercase">No products found</p>
             ) : (
-              <div ref={gridRef} className="grid gap-x-6 gap-y-10 sm:gap-x-8 sm:gap-y-12 md:gap-x-10 md:gap-y-14 grid-cols-2 lg:grid-cols-3">
+              <div ref={gridRef} className="grid gap-x-8 gap-y-12 sm:gap-x-10 sm:gap-y-14 md:gap-x-12 md:gap-y-16 grid-cols-2 lg:grid-cols-3">
                 {products.map((product, i) => {
                   const img = product.node.images.edges[0]?.node;
                   const hoverImg = product.node.images.edges[1]?.node;
