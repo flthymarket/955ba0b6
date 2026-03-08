@@ -11,7 +11,6 @@ const categoryFilters = [
   { label: "New Arrivals", value: "new" },
   { label: "Tops", value: "tops" },
   { label: "Bottoms", value: "bottoms" },
-  { label: "Outerwear", value: "outerwear" },
   { label: "Bags", value: "bags" },
   { label: "Jewelry", value: "jewelry" },
   { label: "Dresses", value: "dresses" },
