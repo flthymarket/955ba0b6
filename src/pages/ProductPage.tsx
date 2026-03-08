@@ -146,7 +146,7 @@ const ProductPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10 lg:gap-16">
           {/* Images */}
           <div>
-            <div className="aspect-[3/4] bg-secondary overflow-hidden mb-3 relative p-6">
+            <div className="aspect-[3/4] bg-transparent overflow-hidden mb-3 relative p-6">
               {mainImage ?
               <img src={mainImage.url} alt={mainImage.altText || product.title} className="w-full h-full object-contain" /> :
 
