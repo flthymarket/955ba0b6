@@ -175,9 +175,6 @@ const Collection = () => {
                           </button>
                         </div>
                         <div className="px-1 pt-3 pb-2">
-                          <p className="text-xs sm:text-sm tracking-[0.15em] uppercase font-light text-muted-foreground mb-0.5">
-                            {product.node.vendor || ""}
-                          </p>
                           <p className="text-sm sm:text-base font-bold mb-1 leading-tight text-foreground" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
                             {product.node.title}
                           </p>
