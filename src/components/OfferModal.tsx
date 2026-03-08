@@ -16,6 +16,7 @@ interface OfferModalProps {
 const OfferModal = ({ isOpen, onClose, productId, productName, productPrice }: OfferModalProps) => {
   const [offerPrice, setOfferPrice] = useState("");
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -37,6 +38,7 @@ const OfferModal = ({ isOpen, onClose, productId, productName, productPrice }: O
     }
 
     setLoading(true);
+    // Store the Shopify GID as-is (product_id is now text type)
     const { error } = await supabase.from("offers").insert({
       product_id: productId,
       user_id: user.id,
@@ -47,26 +49,62 @@ const OfferModal = ({ isOpen, onClose, productId, productName, productPrice }: O
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Offer Submitted", description: "Your offer has been sent. Check your account for updates. Please allow some time for staff to respond." });
-      onClose();
+      setSubmitted(true);
     }
     setLoading(false);
   };
 
+  if (submitted) {
+    return (
+      <div className="fixed inset-0 z-[70] flex items-center justify-center">
+        <div className="absolute inset-0 bg-foreground/30" onClick={() => { setSubmitted(false); onClose(); }} />
+        <div className="relative bg-background border border-border p-8 sm:p-10 max-w-md w-full mx-4 sm:mx-6 animate-fade-in text-center">
+          <button onClick={() => { setSubmitted(false); onClose(); }} className="absolute top-4 right-4 hover:opacity-50 transition-opacity">
+            <X className="w-5 h-5" />
+          </button>
+          <div className="mb-6">
+            <div className="w-12 h-12 bg-foreground text-background rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-lg">✓</span>
+            </div>
+            <h3 className="text-base sm:text-lg tracking-[0.15em] uppercase font-light mb-3">Offer Submitted!</h3>
+            <p className="text-sm text-muted-foreground font-light leading-relaxed mb-2">
+              Your offer has been sent to our team for review.
+            </p>
+            <p className="text-sm text-muted-foreground font-light leading-relaxed">
+              Please go to your <strong>Profile → My Offers</strong> to continue the conversation with our staff. Response times may vary.
+            </p>
+          </div>
+          <button
+            onClick={() => { setSubmitted(false); onClose(); navigate("/account"); }}
+            className="w-full bg-foreground text-background py-4 text-sm tracking-[0.2em] uppercase font-light hover:opacity-80 transition-opacity min-h-[52px]"
+          >
+            Go to My Offers
+          </button>
+          <button
+            onClick={() => { setSubmitted(false); onClose(); }}
+            className="w-full text-sm text-muted-foreground font-light mt-3 py-2 hover:underline"
+          >
+            Continue Shopping
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center">
       <div className="absolute inset-0 bg-foreground/30" onClick={onClose} />
-      <div className="relative bg-background border border-border p-10 max-w-md w-full mx-6 animate-fade-in">
+      <div className="relative bg-background border border-border p-8 sm:p-10 max-w-md w-full mx-4 sm:mx-6 animate-fade-in">
         <button onClick={onClose} className="absolute top-4 right-4 hover:opacity-50 transition-opacity">
           <X className="w-5 h-5" />
         </button>
-        <h3 className="text-base tracking-[0.25em] uppercase font-light mb-3">Make an Offer</h3>
+        <h3 className="text-base sm:text-lg tracking-[0.2em] uppercase font-light mb-3">Make an Offer</h3>
         <p className="text-sm text-muted-foreground tracking-wide mb-1 font-light">{productName}</p>
         <p className="text-sm tracking-wide mb-8 font-light">Listed at ${productPrice.toLocaleString()}</p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="text-xs tracking-[0.2em] uppercase font-light block mb-3">Your Offer Price ($)</label>
+            <label className="text-sm tracking-[0.1em] uppercase font-light block mb-3">Your Offer Price ($)</label>
             <input
               type="number"
               step="0.01"
@@ -81,12 +119,12 @@ const OfferModal = ({ isOpen, onClose, productId, productName, productPrice }: O
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary text-primary-foreground py-4 text-sm tracking-[0.2em] uppercase font-light hover:opacity-80 transition-opacity min-h-[52px] disabled:opacity-50"
+            className="w-full bg-foreground text-background py-4 text-sm tracking-[0.2em] uppercase font-light hover:opacity-80 transition-opacity min-h-[52px] disabled:opacity-50"
           >
             {loading ? "Submitting..." : "Submit Offer"}
           </button>
-          <p className="text-xs text-muted-foreground text-center font-light">
-            Staff will review your offer and respond via chat. Please allow some time for a response.
+          <p className="text-xs text-muted-foreground text-center font-light leading-relaxed">
+            After submitting, go to <strong>Profile → My Offers</strong> to chat with our team. Please allow some time for staff to respond.
           </p>
         </form>
       </div>

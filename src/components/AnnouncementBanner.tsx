@@ -15,10 +15,9 @@ interface Announcement {
 const AnnouncementBanner = () => {
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
   const [timeLeft, setTimeLeft] = useState("");
-  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchAnnouncement = async () => {
       const now = new Date().toISOString();
       const { data } = await supabase
         .from("announcements")
@@ -31,7 +30,7 @@ const AnnouncementBanner = () => {
         .single();
       if (data) setAnnouncement(data as Announcement);
     };
-    fetch();
+    fetchAnnouncement();
   }, []);
 
   useEffect(() => {
@@ -47,7 +46,7 @@ const AnnouncementBanner = () => {
     return () => clearInterval(interval);
   }, [announcement]);
 
-  if (!announcement || dismissed) return null;
+  if (!announcement) return null;
 
   const bgStyles: Record<string, string> = {
     light: "bg-secondary text-foreground",
@@ -55,24 +54,39 @@ const AnnouncementBanner = () => {
     accent: "bg-[hsl(352,82%,38%)] text-white",
   };
 
-  const bg = bgStyles[announcement.background_style || "light"] || bgStyles.light;
-  const align = announcement.text_alignment === "left" ? "text-left" : "text-center";
+  const bg = bgStyles[announcement.background_style || "dark"] || bgStyles.dark;
+
+  const marqueeText = (
+    <span className="inline-flex items-center gap-8 text-[11px] sm:text-[12px] tracking-[0.2em] uppercase font-light whitespace-nowrap">
+      <span>{announcement.banner_text}</span>
+      {announcement.show_countdown && timeLeft && (
+        <span>
+          Ends in <span className="font-mono tabular-nums">{timeLeft}</span>
+        </span>
+      )}
+      <span>★</span>
+      <span>{announcement.banner_text}</span>
+      {announcement.subtext && <span>{announcement.subtext}</span>}
+      <span>★</span>
+      <span>{announcement.banner_text}</span>
+      <span>★</span>
+      <span>{announcement.banner_text}</span>
+      {announcement.subtext && <span>{announcement.subtext}</span>}
+      <span>★</span>
+    </span>
+  );
 
   const content = (
-    <div className={`h-11 flex items-center justify-center px-6 ${bg} ${align} transition-opacity duration-150`}>
-      <p className="text-[12px] tracking-[0.15em] uppercase font-light">
-        {announcement.banner_text}
-        {announcement.show_countdown && timeLeft && (
-          <span className="ml-3">
-            Ends in <span className="font-mono tabular-nums" style={{ color: announcement.background_style === "accent" ? "white" : "hsl(352, 82%, 38%)" }}>{timeLeft}</span>
-          </span>
-        )}
-      </p>
+    <div className={`h-10 flex items-center overflow-hidden ${bg}`}>
+      <div className="animate-marquee flex">
+        {marqueeText}
+        {marqueeText}
+      </div>
     </div>
   );
 
   if (announcement.link_url) {
-    return <a href={announcement.link_url} className="block hover:opacity-95 transition-opacity duration-150">{content}</a>;
+    return <a href={announcement.link_url} className="block">{content}</a>;
   }
 
   return content;
