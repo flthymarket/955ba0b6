@@ -160,7 +160,7 @@ const Index = () => {
                     }}
                   >
                     <Link to={`/product/${product.node.handle}`} className="block">
-                      <div className="aspect-[3/4] overflow-hidden mb-3 bg-secondary relative">
+                      <div className="aspect-[4/5] overflow-hidden mb-3 bg-secondary relative">
                         {img ? (
                           <img
                             src={img.url}
