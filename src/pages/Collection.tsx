@@ -17,6 +17,26 @@ const categoryFilters = [
   { label: "Accessories", value: "accessories" },
 ];
 
+const colorFilters = [
+  { label: "Black", value: "black" },
+  { label: "White", value: "white" },
+  { label: "Blue", value: "blue" },
+  { label: "Red", value: "red" },
+  { label: "Green", value: "green" },
+  { label: "Brown", value: "brown" },
+  { label: "Gray", value: "gray" },
+  { label: "Pink", value: "pink" },
+];
+
+const brandFilters = [
+  { label: "Nike", value: "nike" },
+  { label: "Adidas", value: "adidas" },
+  { label: "Puma", value: "puma" },
+  { label: "Vans", value: "vans" },
+  { label: "Converse", value: "converse" },
+  { label: "New Balance", value: "new-balance" },
+];
+
 const Collection = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const filter = searchParams.get("filter") || "all";
