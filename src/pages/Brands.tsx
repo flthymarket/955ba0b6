@@ -1,62 +1,71 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Brand {
   id: string;
   name: string;
-  logo_url: string | null;
 }
-
-const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 const BrandsPage = () => {
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.from("brands").select("*").order("name").then(({ data }) => {
-      if (data) setBrands(data);
-    });
+    const fetchBrands = async () => {
+      const { data, error } = await supabase
+        .from("brands")
+        .select("id, name")
+        .order("name");
+      
+      if (error) {
+        console.error("Error fetching brands:", error);
+      }
+      
+      if (data) {
+        // Trim names and filter out empty ones
+        setBrands(data.map(b => ({ ...b, name: b.name.trim() })).filter(b => b.name));
+      }
+      setLoading(false);
+    };
+    
+    fetchBrands();
   }, []);
 
-  const grouped = useMemo(() => {
-    const map: Record<string, Brand[]> = {};
-    brands.forEach((b) => {
-      const trimmedName = b.name.trim();
-      const letter = trimmedName[0]?.toUpperCase() || "#";
-      if (!map[letter]) map[letter] = [];
-      map[letter].push({ ...b, name: trimmedName });
-    });
-    return map;
-  }, [brands]);
-
   return (
-    <main className="pt-36 pb-24">
-      <div className="max-w-[1400px] mx-auto px-6">
-        <h1 className="text-lg tracking-[0.3em] font-extralight uppercase text-center mb-16">Designers</h1>
+    <main className="pt-32 pb-24 min-h-screen">
+      <div className="max-w-[800px] mx-auto px-6">
+        {/* Header - matches reference exactly */}
+        <h1 className="text-[13px] tracking-[0.25em] font-normal uppercase text-center mb-16 text-foreground">
+          Brands
+        </h1>
 
-        {/* Alphabetical scroll-through grid */}
-        <div className="space-y-12">
-          {alphabet.filter((letter) => grouped[letter] && grouped[letter].length > 0).map((letter) => (
-            <div key={letter}>
-              <h2 className="text-[14px] tracking-[0.3em] font-extralight uppercase border-b border-border pb-3 mb-6">
-                {letter}
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-8 gap-y-3">
-                {grouped[letter].map((brand) => (
-                  <Link
-                    key={brand.id}
-                    to={`/collection?brand=${encodeURIComponent(brand.name)}`}
-                    className="text-sm tracking-[0.1em] font-light hover:opacity-50 transition-opacity duration-300 py-1"
-                    style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
-                  >
-                    {brand.name}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* Simple centered vertical list */}
+        {loading ? (
+          <div className="flex flex-col items-center gap-8">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="h-4 w-32 bg-muted animate-pulse" />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-10">
+            {brands.map((brand) => (
+              <Link
+                key={brand.id}
+                to={`/collection?brand=${encodeURIComponent(brand.name)}`}
+                className="text-[13px] tracking-[0.15em] uppercase font-normal text-muted-foreground hover:text-foreground transition-colors duration-300"
+              >
+                {brand.name}
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {!loading && brands.length === 0 && (
+          <p className="text-center text-muted-foreground text-sm tracking-widest uppercase">
+            No brands available
+          </p>
+        )}
       </div>
     </main>
   );
