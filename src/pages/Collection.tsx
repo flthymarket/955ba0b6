@@ -121,6 +121,7 @@ const Collection = () => {
           {/* Left sidebar filters - desktop only */}
           <aside className="hidden lg:block w-[200px] flex-shrink-0">
             <div className="sticky top-32">
+              {/* Category Filter */}
               <div className="mb-6">
                 <button onClick={() => setFilterOpen(!filterOpen)} className="flex items-center justify-between w-full text-sm tracking-[0.1em] uppercase font-light border-b border-foreground pb-2 mb-3">
                   Category <ChevronDown className={`w-3 h-3 transition-transform ${filterOpen ? "rotate-180" : ""}`} />
@@ -135,6 +136,60 @@ const Collection = () => {
                           {filter === cat.value && <span className="text-background text-[10px]">✓</span>}
                         </span>
                         {cat.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Color Filter */}
+              <div className="mb-6">
+                <button onClick={() => setColorFilterOpen(!colorFilterOpen)} className="flex items-center justify-between w-full text-sm tracking-[0.1em] uppercase font-light border-b border-foreground pb-2 mb-3">
+                  Color <ChevronDown className={`w-3 h-3 transition-transform ${colorFilterOpen ? "rotate-180" : ""}`} />
+                </button>
+                {colorFilterOpen && (
+                  <div className="space-y-1">
+                    {colorFilters.map((color) => (
+                      <button key={color.value}
+                        onClick={() => {
+                          setSelectedColors(prev => 
+                            prev.includes(color.value) 
+                              ? prev.filter(c => c !== color.value)
+                              : [...prev, color.value]
+                          );
+                        }}
+                        className={`flex items-center gap-2 w-full text-left py-1.5 text-sm font-light transition-all ${selectedColors.includes(color.value) ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                        <span className={`w-4 h-4 border flex items-center justify-center ${selectedColors.includes(color.value) ? "border-foreground bg-foreground" : "border-border"}`}>
+                          {selectedColors.includes(color.value) && <span className="text-background text-[10px]">✓</span>}
+                        </span>
+                        {color.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Brand Filter */}
+              <div className="mb-6">
+                <button onClick={() => setBrandFilterOpen(!brandFilterOpen)} className="flex items-center justify-between w-full text-sm tracking-[0.1em] uppercase font-light border-b border-foreground pb-2 mb-3">
+                  Brand <ChevronDown className={`w-3 h-3 transition-transform ${brandFilterOpen ? "rotate-180" : ""}`} />
+                </button>
+                {brandFilterOpen && (
+                  <div className="space-y-1">
+                    {brandFilters.map((brand) => (
+                      <button key={brand.value}
+                        onClick={() => {
+                          setSelectedBrands(prev => 
+                            prev.includes(brand.value) 
+                              ? prev.filter(b => b !== brand.value)
+                              : [...prev, brand.value]
+                          );
+                        }}
+                        className={`flex items-center gap-2 w-full text-left py-1.5 text-sm font-light transition-all ${selectedBrands.includes(brand.value) ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                        <span className={`w-4 h-4 border flex items-center justify-center ${selectedBrands.includes(brand.value) ? "border-foreground bg-foreground" : "border-border"}`}>
+                          {selectedBrands.includes(brand.value) && <span className="text-background text-[10px]">✓</span>}
+                        </span>
+                        {brand.label}
                       </button>
                     ))}
                   </div>
