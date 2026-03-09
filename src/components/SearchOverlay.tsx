@@ -1,7 +1,37 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Search, X } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { storefrontApiRequest, type ShopifyProduct } from "@/lib/shopify";
+
+const SEARCH_PRODUCTS_QUERY = `
+  query SearchProducts($first: Int!, $query: String!) {
+    products(first: $first, query: $query) {
+      edges {
+        node {
+          id
+          title
+          handle
+          vendor
+          productType
+          priceRange {
+            minVariantPrice {
+              amount
+              currencyCode
+            }
+          }
+          images(first: 1) {
+            edges {
+              node {
+                url
+                altText
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
 
 interface SearchResult {
   type: "product" | "brand";
@@ -39,42 +69,50 @@ const SearchOverlay = ({ open, onClose }: SearchOverlayProps) => {
 
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
-      const q = query.trim().toLowerCase();
+      try {
+        const data = await storefrontApiRequest(SEARCH_PRODUCTS_QUERY, {
+          first: 10,
+          query: query.trim(),
+        });
 
-      const [{ data: products }, { data: brands }] = await Promise.all([
-        supabase.from("products").select("id, name, price, brands(name)").ilike("name", `%${q}%`).limit(6),
-        supabase.from("brands").select("id, name").ilike("name", `%${q}%`).limit(4),
-      ]);
+        const items: SearchResult[] = [];
+        const seenBrands = new Set<string>();
 
-      const items: SearchResult[] = [];
+        if (data?.data?.products?.edges) {
+          (data.data.products.edges as ShopifyProduct[]).forEach((p) => {
+            // Add brand result (deduplicated)
+            const vendor = p.node.vendor;
+            if (vendor && !seenBrands.has(vendor.toLowerCase()) && vendor.toLowerCase().includes(query.trim().toLowerCase())) {
+              seenBrands.add(vendor.toLowerCase());
+              items.push({
+                type: "brand",
+                id: `brand-${vendor}`,
+                name: vendor,
+                url: `/collection?brand=${encodeURIComponent(vendor)}`,
+              });
+            }
 
-      // Get images for products
-      if (products && products.length > 0) {
-        const ids = products.map((p) => p.id);
-        const { data: imgs } = await supabase.from("product_images").select("product_id, url").in("product_id", ids);
-        const imgMap: Record<string, string> = {};
-        imgs?.forEach((i) => { if (!imgMap[i.product_id]) imgMap[i.product_id] = i.url; });
-
-        products.forEach((p) => {
-          items.push({
-            type: "product", id: p.id, name: p.name,
-            subtitle: (p.brands as any)?.name,
-            url: `/product/${p.id}`, image: imgMap[p.id],
-            price: p.price,
+            // Add product result
+            const img = p.node.images.edges[0]?.node;
+            items.push({
+              type: "product",
+              id: p.node.id,
+              name: p.node.title,
+              subtitle: p.node.vendor,
+              url: `/product/${p.node.handle}`,
+              image: img?.url,
+              price: parseFloat(p.node.priceRange.minVariantPrice.amount),
+            });
           });
-        });
+        }
+
+        setResults(items);
+      } catch (err) {
+        console.error("Search failed:", err);
+        setResults([]);
       }
-
-      brands?.forEach((b) => {
-        items.push({
-          type: "brand", id: b.id, name: b.name,
-          url: `/collection?brand=${encodeURIComponent(b.name)}`,
-        });
-      });
-
-      setResults(items);
       setLoading(false);
-    }, 250);
+    }, 300);
 
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [query]);
@@ -97,8 +135,11 @@ const SearchOverlay = ({ open, onClose }: SearchOverlayProps) => {
           <button onClick={onClose}><X className="w-4 h-4" /></button>
         </div>
 
-        {/* Results */}
-        {results.length > 0 && (
+        {loading && (
+          <p className="text-center text-muted-foreground text-xs tracking-widest uppercase py-6">Searching...</p>
+        )}
+
+        {!loading && results.length > 0 && (
           <div className="space-y-1">
             {results.some((r) => r.type === "brand") && (
               <div className="mb-6">
