@@ -350,7 +350,9 @@ const ProductPage = () => {
                           src={img.url}
                           alt={img.altText || rp.node.title}
                           className="w-full h-full object-contain"
-                          loading="lazy" />
+                          loading="lazy"
+                          onMouseEnter={(e) => {if (hoverImg) (e.target as HTMLImageElement).src = hoverImg.url;}}
+                          onMouseLeave={(e) => {if (hoverImg) (e.target as HTMLImageElement).src = img.url;}} />
 
                         }
                           <button className="absolute top-3 right-3 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">

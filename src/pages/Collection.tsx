@@ -164,6 +164,8 @@ const Collection = () => {
                               alt={img.altText || product.node.title}
                               className="w-full h-full object-contain"
                               loading="lazy"
+                              onMouseEnter={(e) => { if (hoverImg) (e.target as HTMLImageElement).src = hoverImg.url; }}
+                              onMouseLeave={(e) => { if (hoverImg) (e.target as HTMLImageElement).src = img.url; }}
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">No Image</div>
