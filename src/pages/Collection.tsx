@@ -17,14 +17,38 @@ const categoryFilters = [
   { label: "Accessories", value: "accessories" },
 ];
 
+const colorFilters = [
+  { label: "Black", value: "black" },
+  { label: "White", value: "white" },
+  { label: "Blue", value: "blue" },
+  { label: "Red", value: "red" },
+  { label: "Green", value: "green" },
+  { label: "Brown", value: "brown" },
+  { label: "Gray", value: "gray" },
+  { label: "Pink", value: "pink" },
+];
+
+const brandFilters = [
+  { label: "Nike", value: "nike" },
+  { label: "Adidas", value: "adidas" },
+  { label: "Puma", value: "puma" },
+  { label: "Vans", value: "vans" },
+  { label: "Converse", value: "converse" },
+  { label: "New Balance", value: "new-balance" },
+];
+
 const Collection = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const filter = searchParams.get("filter") || "all";
   const [sortOpen, setSortOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(true);
+  const [colorFilterOpen, setColorFilterOpen] = useState(false);
+  const [brandFilterOpen, setBrandFilterOpen] = useState(false);
   const [currentSort, setCurrentSort] = useState("Featured");
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedColors, setSelectedColors] = useState<string[]>([]);
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const addItem = useCartStore(state => state.addItem);
   const isLoading = useCartStore(state => state.isLoading);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -97,6 +121,7 @@ const Collection = () => {
           {/* Left sidebar filters - desktop only */}
           <aside className="hidden lg:block w-[200px] flex-shrink-0">
             <div className="sticky top-32">
+              {/* Category Filter */}
               <div className="mb-6">
                 <button onClick={() => setFilterOpen(!filterOpen)} className="flex items-center justify-between w-full text-sm tracking-[0.1em] uppercase font-light border-b border-foreground pb-2 mb-3">
                   Category <ChevronDown className={`w-3 h-3 transition-transform ${filterOpen ? "rotate-180" : ""}`} />
@@ -111,6 +136,60 @@ const Collection = () => {
                           {filter === cat.value && <span className="text-background text-[10px]">✓</span>}
                         </span>
                         {cat.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Color Filter */}
+              <div className="mb-6">
+                <button onClick={() => setColorFilterOpen(!colorFilterOpen)} className="flex items-center justify-between w-full text-sm tracking-[0.1em] uppercase font-light border-b border-foreground pb-2 mb-3">
+                  Color <ChevronDown className={`w-3 h-3 transition-transform ${colorFilterOpen ? "rotate-180" : ""}`} />
+                </button>
+                {colorFilterOpen && (
+                  <div className="space-y-1">
+                    {colorFilters.map((color) => (
+                      <button key={color.value}
+                        onClick={() => {
+                          setSelectedColors(prev => 
+                            prev.includes(color.value) 
+                              ? prev.filter(c => c !== color.value)
+                              : [...prev, color.value]
+                          );
+                        }}
+                        className={`flex items-center gap-2 w-full text-left py-1.5 text-sm font-light transition-all ${selectedColors.includes(color.value) ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                        <span className={`w-4 h-4 border flex items-center justify-center ${selectedColors.includes(color.value) ? "border-foreground bg-foreground" : "border-border"}`}>
+                          {selectedColors.includes(color.value) && <span className="text-background text-[10px]">✓</span>}
+                        </span>
+                        {color.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Brand Filter */}
+              <div className="mb-6">
+                <button onClick={() => setBrandFilterOpen(!brandFilterOpen)} className="flex items-center justify-between w-full text-sm tracking-[0.1em] uppercase font-light border-b border-foreground pb-2 mb-3">
+                  Brand <ChevronDown className={`w-3 h-3 transition-transform ${brandFilterOpen ? "rotate-180" : ""}`} />
+                </button>
+                {brandFilterOpen && (
+                  <div className="space-y-1">
+                    {brandFilters.map((brand) => (
+                      <button key={brand.value}
+                        onClick={() => {
+                          setSelectedBrands(prev => 
+                            prev.includes(brand.value) 
+                              ? prev.filter(b => b !== brand.value)
+                              : [...prev, brand.value]
+                          );
+                        }}
+                        className={`flex items-center gap-2 w-full text-left py-1.5 text-sm font-light transition-all ${selectedBrands.includes(brand.value) ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                        <span className={`w-4 h-4 border flex items-center justify-center ${selectedBrands.includes(brand.value) ? "border-foreground bg-foreground" : "border-border"}`}>
+                          {selectedBrands.includes(brand.value) && <span className="text-background text-[10px]">✓</span>}
+                        </span>
+                        {brand.label}
                       </button>
                     ))}
                   </div>
@@ -159,14 +238,22 @@ const Collection = () => {
                       <Link to={`/product/${product.node.handle}`} className="block">
                         <div className="aspect-[3/4] overflow-hidden mb-3 bg-transparent relative p-4">
                           {img ? (
-                            <img
-                              src={img.url}
-                              alt={img.altText || product.node.title}
-                              className="w-full h-full object-contain"
-                              loading="lazy"
-                              onMouseEnter={(e) => { if (hoverImg) (e.target as HTMLImageElement).src = hoverImg.url; }}
-                              onMouseLeave={(e) => { if (hoverImg) (e.target as HTMLImageElement).src = img.url; }}
-                            />
+                            <div className="relative w-full h-full">
+                              <img
+                                src={img.url}
+                                alt={img.altText || product.node.title}
+                                className="w-full h-full object-contain transition-opacity duration-300"
+                                loading="lazy"
+                              />
+                              {hoverImg && (
+                                <img
+                                  src={hoverImg.url}
+                                  alt={img.altText || product.node.title}
+                                  className="absolute inset-0 w-full h-full object-contain opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                                  loading="lazy"
+                                />
+                              )}
+                            </div>
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">No Image</div>
                           )}

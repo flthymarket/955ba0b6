@@ -162,18 +162,22 @@ const Index = () => {
                     <Link to={`/product/${product.node.handle}`} className="block">
                       <div className="aspect-[3/4] overflow-hidden mb-3 bg-transparent relative p-4">
                         {img ? (
-                          <img
-                            src={img.url}
-                            alt={img.altText || product.node.title}
-                            className="w-full h-full object-contain"
-                            loading="lazy"
-                            onMouseEnter={(e) => {
-                              if (hoverImg) (e.target as HTMLImageElement).src = hoverImg.url;
-                            }}
-                            onMouseLeave={(e) => {
-                              if (hoverImg) (e.target as HTMLImageElement).src = img.url;
-                            }}
-                          />
+                          <div className="relative w-full h-full">
+                            <img
+                              src={img.url}
+                              alt={img.altText || product.node.title}
+                              className="w-full h-full object-contain transition-opacity duration-300"
+                              loading="lazy"
+                            />
+                            {hoverImg && (
+                              <img
+                                src={hoverImg.url}
+                                alt={img.altText || product.node.title}
+                                className="absolute inset-0 w-full h-full object-contain opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                                loading="lazy"
+                              />
+                            )}
+                          </div>
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">No Image</div>
                         )}
