@@ -2,3 +2,6 @@ project_id = "lbzplogoygcfnjgmusjm"
 
 [functions.enhance-image]
 verify_jwt = false
+
+[functions.shopify-admin]
+verify_jwt = false

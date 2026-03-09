@@ -28,11 +28,13 @@ const AdminBrands = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const data = { name: form.name, logo_url: form.logo_url || null, description: form.description || null };
+    const brandData = { name: form.name.trim(), logo_url: form.logo_url || null, description: form.description || null };
     if (editing) {
-      await supabase.from("brands").update(data).eq("id", editing);
+      const { error } = await supabase.from("brands").update(brandData).eq("id", editing);
+      if (error) { toast({ title: "Error updating brand", description: error.message, variant: "destructive" }); return; }
     } else {
-      await supabase.from("brands").insert(data);
+      const { error } = await supabase.from("brands").insert(brandData);
+      if (error) { toast({ title: "Error creating brand", description: error.message, variant: "destructive" }); return; }
     }
     toast({ title: editing ? "Brand updated" : "Brand created" });
     setShowForm(false); setEditing(null);
@@ -47,7 +49,8 @@ const AdminBrands = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this brand?")) return;
-    await supabase.from("brands").delete().eq("id", id);
+    const { error } = await supabase.from("brands").delete().eq("id", id);
+    if (error) { toast({ title: "Error deleting brand", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Brand deleted" });
     fetchBrands();
   };
@@ -75,7 +78,7 @@ const AdminBrands = () => {
             <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
               className="w-full border border-border bg-transparent px-3 py-2 text-[11px] outline-none min-h-[80px] resize-none" />
           </div>
-          <button type="submit" className="bg-primary text-primary-foreground px-8 py-3 editorial-heading text-[11px] min-h-[48px]">
+          <button type="submit" className="bg-primary text-primary-foreground px-8 py-3 text-xs tracking-[0.15em] uppercase font-light hover:opacity-80 transition-opacity min-h-[48px]">
             {editing ? "Update" : "Create"}
           </button>
         </form>
@@ -88,7 +91,7 @@ const AdminBrands = () => {
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-[14px] tracking-[0.3em] uppercase font-extralight">Brands</h1>
         <button onClick={() => { setForm({ name: "", logo_url: "", description: "" }); setShowForm(true); }}
-          className="bg-primary text-primary-foreground px-6 py-2 editorial-heading text-[10px] flex items-center gap-2 hover:opacity-80 min-h-[40px]">
+          className="bg-primary text-primary-foreground px-6 py-2 text-xs tracking-[0.15em] uppercase font-light flex items-center gap-2 hover:opacity-80 transition-opacity min-h-[40px]">
           <Plus className="w-3 h-3" /> Add Brand
         </button>
       </div>
