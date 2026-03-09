@@ -126,20 +126,22 @@ const Collection = () => {
                 <button onClick={() => setFilterOpen(!filterOpen)} className="flex items-center justify-between w-full text-sm tracking-[0.1em] uppercase font-light border-b border-foreground pb-2 mb-3">
                   Category <ChevronDown className={`w-3 h-3 transition-transform ${filterOpen ? "rotate-180" : ""}`} />
                 </button>
-                {filterOpen && (
-                  <div className="space-y-1">
-                    {categoryFilters.map((cat) => (
-                      <button key={cat.value}
-                        onClick={() => setSearchParams(cat.value === "all" ? {} : { filter: cat.value })}
-                        className={`flex items-center gap-2 w-full text-left py-1.5 text-sm font-light transition-all ${filter === cat.value ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-                        <span className={`w-4 h-4 border flex items-center justify-center ${filter === cat.value ? "border-foreground bg-foreground" : "border-border"}`}>
-                          {filter === cat.value && <span className="text-background text-[10px]">✓</span>}
-                        </span>
-                        {cat.label}
-                      </button>
-                    ))}
+                <div className={`grid transition-all duration-300 ease-out ${filterOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
+                  <div className="overflow-hidden">
+                    <div className="space-y-1">
+                      {categoryFilters.map((cat) => (
+                        <button key={cat.value}
+                          onClick={() => setSearchParams(cat.value === "all" ? {} : { filter: cat.value })}
+                          className={`flex items-center gap-2 w-full text-left py-1.5 text-sm font-light transition-all ${filter === cat.value ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                          <span className={`w-4 h-4 border flex items-center justify-center ${filter === cat.value ? "border-foreground bg-foreground" : "border-border"}`}>
+                            {filter === cat.value && <span className="text-background text-[10px]">✓</span>}
+                          </span>
+                          {cat.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
 
               {/* Color Filter */}
