@@ -88,7 +88,7 @@ const Header = () => {
             </button>
 
             <Link to="/" className="flex-shrink-0">
-              <img src={logo} alt="FLTHY MRKT" className="h-10 sm:h-12 md:h-16 lg:h-20 w-auto" />
+              <img src={logo} alt="FLTHY MRKT" className="h-14 sm:h-16 md:h-20 lg:h-24 w-auto" />
             </Link>
 
             <div className="flex items-center gap-4 md:gap-6 absolute right-0">
