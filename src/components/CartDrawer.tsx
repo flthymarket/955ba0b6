@@ -18,7 +18,12 @@ const CartDrawer = ({ open, onClose }: CartDrawerProps) => {
   const handleCheckout = () => {
     const checkoutUrl = getCheckoutUrl();
     if (checkoutUrl) {
-      window.location.href = checkoutUrl;
+      try {
+        window.location.href = checkoutUrl;
+      } catch (e) {
+        // Fallback for iframe/cross-origin restrictions
+        window.open(checkoutUrl, '_blank');
+      }
     }
   };
 
