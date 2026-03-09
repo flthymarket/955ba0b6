@@ -88,7 +88,8 @@ const Collection = () => {
       try {
         let queryFilter: string | undefined;
         if (filter && filter !== "new" && filter !== "all") {
-          queryFilter = `product_type:${filter}`;
+          const capitalizedFilter = filter.charAt(0).toUpperCase() + filter.slice(1);
+          queryFilter = `product_type:${capitalizedFilter}`;
         }
         const data = await storefrontApiRequest(PRODUCTS_QUERY, { first: 50, query: queryFilter });
         if (data?.data?.products?.edges) {
