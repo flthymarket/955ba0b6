@@ -22,9 +22,10 @@ const BrandsPage = () => {
   const grouped = useMemo(() => {
     const map: Record<string, Brand[]> = {};
     brands.forEach((b) => {
-      const letter = b.name[0]?.toUpperCase() || "#";
+      const trimmedName = b.name.trim();
+      const letter = trimmedName[0]?.toUpperCase() || "#";
       if (!map[letter]) map[letter] = [];
-      map[letter].push(b);
+      map[letter].push({ ...b, name: trimmedName });
     });
     return map;
   }, [brands]);

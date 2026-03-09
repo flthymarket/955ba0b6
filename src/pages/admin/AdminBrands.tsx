@@ -49,7 +49,8 @@ const AdminBrands = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this brand?")) return;
-    await supabase.from("brands").delete().eq("id", id);
+    const { error } = await supabase.from("brands").delete().eq("id", id);
+    if (error) { toast({ title: "Error deleting brand", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Brand deleted" });
     fetchBrands();
   };
