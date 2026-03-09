@@ -28,11 +28,13 @@ const AdminBrands = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const data = { name: form.name, logo_url: form.logo_url || null, description: form.description || null };
+    const brandData = { name: form.name.trim(), logo_url: form.logo_url || null, description: form.description || null };
     if (editing) {
-      await supabase.from("brands").update(data).eq("id", editing);
+      const { error } = await supabase.from("brands").update(brandData).eq("id", editing);
+      if (error) { toast({ title: "Error updating brand", description: error.message, variant: "destructive" }); return; }
     } else {
-      await supabase.from("brands").insert(data);
+      const { error } = await supabase.from("brands").insert(brandData);
+      if (error) { toast({ title: "Error creating brand", description: error.message, variant: "destructive" }); return; }
     }
     toast({ title: editing ? "Brand updated" : "Brand created" });
     setShowForm(false); setEditing(null);
