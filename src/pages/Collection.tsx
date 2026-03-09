@@ -197,7 +197,7 @@ const Collection = () => {
               </FilterSection>
 
               {availableBrands.length > 0 && (
-                <FilterSection title="Brand" open={brandOpen} onToggle={() => setBrandOpen(!brandOpen)}>
+                <FilterSection title="Designer" open={brandOpen} onToggle={() => setBrandOpen(!brandOpen)}>
                   {availableBrands.map((brand) => (
                     <FilterCheckbox key={brand} label={brand} checked={selectedBrands.includes(brand)}
                       onClick={() => setSelectedBrands((prev) =>
