@@ -40,7 +40,8 @@ function extractColors(products: ShopifyProduct[]): string[] {
 function extractBrands(products: ShopifyProduct[]): string[] {
   const brands = new Set<string>();
   products.forEach((p) => {
-    if (p.node.vendor && p.node.vendor.trim()) brands.add(p.node.vendor.trim());
+    const vendor = p.node.vendor?.trim();
+    if (vendor && vendor.toLowerCase() !== "flthymrkt") brands.add(vendor);
   });
   return Array.from(brands).sort();
 }
@@ -196,7 +197,7 @@ const Collection = () => {
               </FilterSection>
 
               {availableBrands.length > 0 && (
-                <FilterSection title="Brand" open={brandOpen} onToggle={() => setBrandOpen(!brandOpen)}>
+                <FilterSection title="Designer" open={brandOpen} onToggle={() => setBrandOpen(!brandOpen)}>
                   {availableBrands.map((brand) => (
                     <FilterCheckbox key={brand} label={brand} checked={selectedBrands.includes(brand)}
                       onClick={() => setSelectedBrands((prev) =>
