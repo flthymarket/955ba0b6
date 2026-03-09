@@ -40,7 +40,8 @@ function extractColors(products: ShopifyProduct[]): string[] {
 function extractBrands(products: ShopifyProduct[]): string[] {
   const brands = new Set<string>();
   products.forEach((p) => {
-    if (p.node.vendor && p.node.vendor.trim()) brands.add(p.node.vendor.trim());
+    const vendor = p.node.vendor?.trim();
+    if (vendor && vendor.toLowerCase() !== "flthymrkt") brands.add(vendor);
   });
   return Array.from(brands).sort();
 }
