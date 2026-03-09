@@ -1,143 +1,350 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "./AdminLayout";
-import ImageUpload from "@/components/ImageUpload";
-import { Plus, Pencil, Trash2, Search, Check, Info } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, RefreshCw, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const allCategories = ["Tops", "Bottoms", "Outerwear", "Accessories", "Bags", "Jewelry", "Dresses"];
-const conditionLevels = ["Fair", "Good", "Great", "Excellent", "Pristine"];
-
-interface Product {
+interface ShopifyProduct {
   id: string;
-  name: string;
-  price: number;
-  category: string;
-  featured: boolean | null;
-  brand_id: string | null;
-  brands?: { name: string } | null;
+  title: string;
+  handle: string;
+  status: string;
+  vendor: string;
+  productType: string;
+  totalInventory: number;
+  priceRangeV2: {
+    minVariantPrice: { amount: string; currencyCode: string };
+    maxVariantPrice: { amount: string; currencyCode: string };
+  };
+  featuredImage: { url: string } | null;
+  variants: {
+    edges: Array<{
+      node: {
+        id: string;
+        title: string;
+        price: string;
+        inventoryQuantity: number;
+      };
+    }>;
+  };
 }
 
+interface ProductFormData {
+  title: string;
+  vendor: string;
+  productType: string;
+  descriptionHtml: string;
+  status: string;
+  variants: Array<{
+    price: string;
+    inventoryQuantity: number;
+    options: string[];
+  }>;
+}
+
+const PRODUCTS_QUERY = `
+  query GetProducts($first: Int!, $query: String) {
+    products(first: $first, query: $query) {
+      edges {
+        node {
+          id
+          title
+          handle
+          status
+          vendor
+          productType
+          totalInventory
+          priceRangeV2 {
+            minVariantPrice { amount currencyCode }
+            maxVariantPrice { amount currencyCode }
+          }
+          featuredImage { url }
+          variants(first: 10) {
+            edges {
+              node {
+                id
+                title
+                price
+                inventoryQuantity
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+const PRODUCT_QUERY = `
+  query GetProduct($id: ID!) {
+    product(id: $id) {
+      id
+      title
+      handle
+      status
+      vendor
+      productType
+      descriptionHtml
+      totalInventory
+      options {
+        name
+        values
+      }
+      variants(first: 20) {
+        edges {
+          node {
+            id
+            title
+            price
+            inventoryQuantity
+            selectedOptions {
+              name
+              value
+            }
+          }
+        }
+      }
+      images(first: 10) {
+        edges {
+          node {
+            id
+            url
+            altText
+          }
+        }
+      }
+    }
+  }
+`;
+
+const CREATE_PRODUCT_MUTATION = `
+  mutation CreateProduct($input: ProductInput!) {
+    productCreate(input: $input) {
+      product {
+        id
+        title
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+const UPDATE_PRODUCT_MUTATION = `
+  mutation UpdateProduct($input: ProductInput!) {
+    productUpdate(input: $input) {
+      product {
+        id
+        title
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+const DELETE_PRODUCT_MUTATION = `
+  mutation DeleteProduct($input: ProductDeleteInput!) {
+    productDelete(input: $input) {
+      deletedProductId
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
 const AdminProducts = () => {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<ShopifyProduct[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
-  const [form, setForm] = useState({
-    name: "", brand_id: "", category: "Tops", price: "", sku: "",
-    description: "", condition: "Good", color: "", material: "",
-    featured: false, condition_description: "",
-    discount_enabled: false, discount_type: "percentage", discount_value: "",
-    discount_start: "", discount_end: "", is_flash_sale: false,
+  const [form, setForm] = useState<ProductFormData>({
+    title: "",
+    vendor: "FlthyMrkt",
+    productType: "Tops",
+    descriptionHtml: "",
+    status: "DRAFT",
+    variants: [{ price: "", inventoryQuantity: 1, options: ["Default Title"] }],
   });
-  const [variants, setVariants] = useState<{ size: string; quantity: string }[]>([{ size: "", quantity: "1" }]);
-  const [brands, setBrands] = useState<{ id: string; name: string }[]>([]);
-  const [productImages, setProductImages] = useState<string[]>([]);
+
+  const categories = ["Tops", "Bottoms", "Accessories", "Outerwear", "Bags", "Jewelry"];
 
   useEffect(() => {
     fetchProducts();
-    supabase.from("brands").select("id, name").order("name").then(({ data }) => {
-      if (data) setBrands(data);
-    });
   }, []);
 
-  const fetchProducts = async () => {
-    const { data } = await supabase
-      .from("products")
-      .select("id, name, price, category, featured, brand_id, brands(name)")
-      .order("created_at", { ascending: false });
-    if (data) setProducts(data as any);
+  const shopifyAdminRequest = async (operation: string, variables: Record<string, unknown> = {}) => {
+    const { data, error } = await supabase.functions.invoke('shopify-admin', {
+      body: { operation, variables },
+    });
+
+    if (error) throw new Error(error.message);
+    if (data?.error) throw new Error(data.error);
+    return data;
+  };
+
+  const fetchProducts = async (query?: string) => {
+    setLoading(true);
+    try {
+      const data = await shopifyAdminRequest(PRODUCTS_QUERY, {
+        first: 50,
+        query: query || null,
+      });
+      setProducts(data.data.products.edges.map((e: { node: ShopifyProduct }) => e.node));
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      toast({
+        title: "Error loading products",
+        description: error instanceof Error ? error.message : "Failed to load products from Shopify",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this product?")) return;
-    await supabase.from("product_variants").delete().eq("product_id", id);
-    await supabase.from("product_images").delete().eq("product_id", id);
-    await supabase.from("products").delete().eq("id", id);
-    toast({ title: "Product deleted" });
-    fetchProducts();
+    if (!confirm("Delete this product from Shopify? This cannot be undone.")) return;
+
+    try {
+      const data = await shopifyAdminRequest(DELETE_PRODUCT_MUTATION, {
+        input: { id },
+      });
+
+      if (data.data.productDelete.userErrors?.length > 0) {
+        throw new Error(data.data.productDelete.userErrors[0].message);
+      }
+
+      toast({ title: "Product deleted from Shopify" });
+      fetchProducts();
+    } catch (error) {
+      toast({
+        title: "Error deleting product",
+        description: error instanceof Error ? error.message : "Failed to delete product",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const productData: any = {
-      name: form.name, brand_id: form.brand_id || null, category: form.category,
-      price: parseFloat(form.price), sku: form.sku || null, description: form.description || null,
-      condition: form.condition, condition_description: form.condition_description || null,
-      color: form.color || null, material: form.material || null, featured: form.featured,
-      discount_enabled: form.discount_enabled, discount_type: form.discount_type,
-      discount_value: form.discount_value ? parseFloat(form.discount_value) : 0,
-      discount_start: form.discount_start ? new Date(form.discount_start).toISOString() : null,
-      discount_end: form.discount_end ? new Date(form.discount_end).toISOString() : null,
-      is_flash_sale: form.is_flash_sale,
-    };
+    setSaving(true);
 
-    let productId = editing;
+    try {
+      const input: Record<string, unknown> = {
+        title: form.title,
+        vendor: form.vendor,
+        productType: form.productType,
+        descriptionHtml: form.descriptionHtml,
+        status: form.status,
+      };
 
-    if (editing) {
-      await supabase.from("products").update(productData).eq("id", editing);
-      await supabase.from("product_variants").delete().eq("product_id", editing);
-      await supabase.from("product_images").delete().eq("product_id", editing);
-    } else {
-      const { data } = await supabase.from("products").insert(productData).select("id").single();
-      if (data) productId = data.id;
+      if (editing) {
+        input.id = editing;
+        const data = await shopifyAdminRequest(UPDATE_PRODUCT_MUTATION, { input });
+
+        if (data.data.productUpdate.userErrors?.length > 0) {
+          throw new Error(data.data.productUpdate.userErrors[0].message);
+        }
+
+        toast({ title: "Product updated in Shopify" });
+      } else {
+        input.variants = form.variants.map(v => ({
+          price: v.price,
+          inventoryQuantities: {
+            availableQuantity: v.inventoryQuantity,
+            locationId: "gid://shopify/Location/1", // Default location
+          },
+        }));
+
+        const data = await shopifyAdminRequest(CREATE_PRODUCT_MUTATION, { input });
+
+        if (data.data.productCreate.userErrors?.length > 0) {
+          throw new Error(data.data.productCreate.userErrors[0].message);
+        }
+
+        toast({ title: "Product created in Shopify" });
+      }
+
+      resetForm();
+      fetchProducts();
+    } catch (error) {
+      toast({
+        title: "Error saving product",
+        description: error instanceof Error ? error.message : "Failed to save product",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
     }
-
-    if (productId) {
-      const variantData = variants.filter((v) => v.size)
-        .map((v) => ({ product_id: productId!, size: v.size, quantity: parseInt(v.quantity) || 0 }));
-      if (variantData.length > 0) await supabase.from("product_variants").insert(variantData);
-
-      const imageData = productImages.filter(Boolean)
-        .map((url, i) => ({ product_id: productId!, url, sort_order: i }));
-      if (imageData.length > 0) await supabase.from("product_images").insert(imageData);
-    }
-
-    toast({ title: editing ? "Product updated" : "Product created" });
-    resetForm();
-    fetchProducts();
   };
 
   const startEdit = async (id: string) => {
-    const { data: product } = await supabase.from("products").select("*").eq("id", id).single();
-    const { data: pvariants } = await supabase.from("product_variants").select("*").eq("product_id", id);
-    const { data: imgs } = await supabase.from("product_images").select("url").eq("product_id", id).order("sort_order");
+    try {
+      const data = await shopifyAdminRequest(PRODUCT_QUERY, { id });
+      const product = data.data.product;
 
-    if (product) {
-      setForm({
-        name: product.name, brand_id: product.brand_id || "", category: product.category,
-        price: String(product.price), sku: product.sku || "", description: product.description || "",
-        condition: product.condition || "Good", condition_description: product.condition_description || "",
-        color: product.color || "", material: product.material || "", featured: product.featured || false,
-        discount_enabled: product.discount_enabled || false, discount_type: product.discount_type || "percentage",
-        discount_value: product.discount_value ? String(product.discount_value) : "",
-        discount_start: product.discount_start ? new Date(product.discount_start).toISOString().slice(0, 16) : "",
-        discount_end: product.discount_end ? new Date(product.discount_end).toISOString().slice(0, 16) : "",
-        is_flash_sale: product.is_flash_sale || false,
+      if (product) {
+        setForm({
+          title: product.title,
+          vendor: product.vendor || "FlthyMrkt",
+          productType: product.productType || "Tops",
+          descriptionHtml: product.descriptionHtml || "",
+          status: product.status,
+          variants: product.variants.edges.map((e: { node: { price: string; inventoryQuantity: number; selectedOptions: Array<{ value: string }> } }) => ({
+            price: e.node.price,
+            inventoryQuantity: e.node.inventoryQuantity,
+            options: e.node.selectedOptions.map((o: { value: string }) => o.value),
+          })),
+        });
+        setEditing(id);
+        setShowForm(true);
+      }
+    } catch (error) {
+      toast({
+        title: "Error loading product",
+        description: error instanceof Error ? error.message : "Failed to load product details",
+        variant: "destructive",
       });
-      setVariants(pvariants?.length ? pvariants.map((v: any) => ({ size: v.size, quantity: String(v.quantity) })) : [{ size: "", quantity: "1" }]);
-      setProductImages(imgs?.map((i: any) => i.url) || []);
-      setEditing(id);
-      setShowForm(true);
     }
   };
 
   const resetForm = () => {
-    setForm({ name: "", brand_id: "", category: "Tops", price: "", sku: "", description: "", condition: "Good", color: "", material: "", featured: false, condition_description: "", discount_enabled: false, discount_type: "percentage", discount_value: "", discount_start: "", discount_end: "", is_flash_sale: false });
-    setVariants([{ size: "", quantity: "1" }]);
-    setProductImages([]);
+    setForm({
+      title: "",
+      vendor: "FlthyMrkt",
+      productType: "Tops",
+      descriptionHtml: "",
+      status: "DRAFT",
+      variants: [{ price: "", inventoryQuantity: 1, options: ["Default Title"] }],
+    });
     setEditing(null);
     setShowForm(false);
   };
 
-  const filtered = products.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
+  const handleSearch = () => {
+    fetchProducts(search ? `title:*${search}*` : undefined);
+  };
+
+  const formatPrice = (amount: string) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(parseFloat(amount));
+  };
 
   const inputCls = "w-full border border-border bg-transparent px-4 py-3 text-sm outline-none focus:border-foreground transition-colors duration-150";
   const labelCls = "text-xs tracking-widest uppercase text-muted-foreground block mb-2";
-  const toggleCls = (on: boolean) => `relative w-11 h-6 rounded-full transition-colors duration-150 cursor-pointer ${on ? "bg-foreground" : "bg-border"}`;
-  const knobCls = (on: boolean) => `absolute top-0.5 w-5 h-5 rounded-full bg-background transition-transform duration-150 ${on ? "translate-x-5" : "translate-x-0.5"}`;
 
   if (showForm) {
     return (
@@ -146,186 +353,124 @@ const AdminProducts = () => {
           <h1 className="text-base tracking-[0.3em] uppercase font-extralight">
             {editing ? "Edit Product" : "Add Product"}
           </h1>
-          <button onClick={resetForm} className="text-xs tracking-[0.15em] uppercase text-muted-foreground hover:opacity-50 transition-opacity">← Back</button>
-        </div>
-
-        {/* Shopify Notice */}
-        <div className="bg-muted/50 border border-border p-4 mb-8 flex items-start gap-3">
-          <Info className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-          <p className="text-xs text-muted-foreground font-light leading-relaxed">
-            Products are managed through Shopify. Use this form for internal tracking. To add products for sale, import them through your Shopify admin dashboard.
-          </p>
+          <button onClick={resetForm} className="text-xs tracking-[0.15em] uppercase text-muted-foreground hover:opacity-50 transition-opacity">
+            ← Back
+          </button>
         </div>
 
         <form onSubmit={handleSave} className="max-w-2xl space-y-8">
-          {/* General */}
           <div className="border border-border p-6 space-y-4">
-            <h3 className="text-sm tracking-[0.2em] uppercase font-light mb-4">General</h3>
+            <h3 className="text-sm tracking-[0.2em] uppercase font-light mb-4">Product Details</h3>
+
             <div>
-              <label className={labelCls}>Product Name *</label>
-              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className={inputCls} />
+              <label className={labelCls}>Title *</label>
+              <input
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                required
+                className={inputCls}
+                placeholder="Product name"
+              />
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className={labelCls}>Brand</label>
-                <select value={form.brand_id} onChange={(e) => setForm({ ...form, brand_id: e.target.value })} className={inputCls}>
-                  <option value="">Select brand</option>
-                  {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                <label className={labelCls}>Vendor</label>
+                <input
+                  value={form.vendor}
+                  onChange={(e) => setForm({ ...form, vendor: e.target.value })}
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Product Type</label>
+                <select
+                  value={form.productType}
+                  onChange={(e) => setForm({ ...form, productType: e.target.value })}
+                  className={inputCls}
+                >
+                  {categories.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
                 </select>
               </div>
-              <div>
-                <label className={labelCls}>Category *</label>
-                <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className={inputCls}>
-                  {allCategories.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelCls}>Price *</label>
-                <input type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required className={inputCls} />
-              </div>
-              <div>
-                <label className={labelCls}>SKU</label>
-                <input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} className={inputCls} />
-              </div>
-            </div>
-          </div>
 
-          {/* Pricing & Discount */}
-          <div className={`border p-6 space-y-4 transition-all duration-150 ${form.discount_enabled ? "border-l-2 border-l-foreground border-border" : "border-border"}`}>
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm tracking-[0.2em] uppercase font-light">Discount Settings</h3>
-              <button type="button" onClick={() => setForm({ ...form, discount_enabled: !form.discount_enabled })} className={toggleCls(form.discount_enabled)}>
-                <div className={knobCls(form.discount_enabled)} />
-              </button>
-            </div>
-            {form.discount_enabled && (
-              <div className="space-y-4 animate-fade-in">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className={labelCls}>Discount Type</label>
-                    <select value={form.discount_type} onChange={(e) => setForm({ ...form, discount_type: e.target.value })} className={inputCls}>
-                      <option value="percentage">Percentage</option>
-                      <option value="fixed">Fixed Amount</option>
-                      <option value="override">Override Price</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className={labelCls}>Discount Value</label>
-                    <input type="number" step="0.01" min="0" value={form.discount_value}
-                      onChange={(e) => setForm({ ...form, discount_value: e.target.value })} className={inputCls}
-                      placeholder={form.discount_type === "percentage" ? "25" : "50.00"} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className={labelCls}>Start Date</label>
-                    <input type="datetime-local" value={form.discount_start} onChange={(e) => setForm({ ...form, discount_start: e.target.value })} className={inputCls} />
-                  </div>
-                  <div>
-                    <label className={labelCls}>End Date</label>
-                    <input type="datetime-local" value={form.discount_end} onChange={(e) => setForm({ ...form, discount_end: e.target.value })} className={inputCls} />
-                  </div>
-                </div>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <button type="button" onClick={() => setForm({ ...form, is_flash_sale: !form.is_flash_sale })} className={toggleCls(form.is_flash_sale)}>
-                    <div className={knobCls(form.is_flash_sale)} />
-                  </button>
-                  <span className="text-sm tracking-widest uppercase">Flash Sale</span>
-                </label>
-              </div>
-            )}
-          </div>
-
-          {/* Media */}
-          <div className="border border-border p-6 space-y-4">
-            <h3 className="text-sm tracking-[0.2em] uppercase font-light mb-4">Media</h3>
-            <div className="grid grid-cols-4 gap-3">
-              {productImages.map((url, i) => (
-                <ImageUpload key={i} bucket="product-images" currentUrl={url}
-                  onUpload={(newUrl) => {
-                    const imgs = [...productImages];
-                    if (newUrl) { imgs[i] = newUrl; } else { imgs.splice(i, 1); }
-                    setProductImages(imgs);
-                  }} />
-              ))}
-              <ImageUpload bucket="product-images" onUpload={(url) => {
-                if (url) setProductImages([...productImages, url]);
-              }} />
-            </div>
-          </div>
-
-          {/* Inventory */}
-          <div className="border border-border p-6 space-y-4">
-            <h3 className="text-sm tracking-[0.2em] uppercase font-light mb-4">Inventory</h3>
-            {variants.map((v, i) => (
-              <div key={i} className="flex gap-4 items-end">
-                <div className="flex-1">
-                  <label className={labelCls}>Size</label>
-                  <input value={v.size} onChange={(e) => { const n = [...variants]; n[i].size = e.target.value; setVariants(n); }} className={inputCls} />
-                </div>
-                <div className="w-24">
-                  <label className={labelCls}>Qty</label>
-                  <input type="number" min="0" value={v.quantity} onChange={(e) => { const n = [...variants]; n[i].quantity = e.target.value; setVariants(n); }} className={inputCls} />
-                </div>
-                {variants.length > 1 && (
-                  <button type="button" onClick={() => setVariants(variants.filter((_, j) => j !== i))}
-                    className="text-muted-foreground hover:text-foreground pb-3"><Trash2 className="w-4 h-4" /></button>
-                )}
-              </div>
-            ))}
-            <button type="button" onClick={() => setVariants([...variants, { size: "", quantity: "1" }])}
-              className="text-xs tracking-[0.15em] uppercase text-muted-foreground flex items-center gap-2 hover:opacity-50 transition-opacity">
-              <Plus className="w-4 h-4" /> Add Size
-            </button>
-          </div>
-
-          {/* Details */}
-          <div className="border border-border p-6 space-y-4">
-            <h3 className="text-sm tracking-[0.2em] uppercase font-light mb-4">Details</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelCls}>Color</label>
-                <input value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} className={inputCls} />
-              </div>
-              <div>
-                <label className={labelCls}>Material</label>
-                <input value={form.material} onChange={(e) => setForm({ ...form, material: e.target.value })} className={inputCls} />
-              </div>
-            </div>
             <div>
-              <label className={labelCls}>Condition</label>
-              <select value={form.condition} onChange={(e) => setForm({ ...form, condition: e.target.value })} className={inputCls}>
-                {conditionLevels.map((c) => <option key={c} value={c}>{c}</option>)}
+              <label className={labelCls}>Status</label>
+              <select
+                value={form.status}
+                onChange={(e) => setForm({ ...form, status: e.target.value })}
+                className={inputCls}
+              >
+                <option value="DRAFT">Draft</option>
+                <option value="ACTIVE">Active</option>
+                <option value="ARCHIVED">Archived</option>
               </select>
             </div>
-            <div>
-              <label className={labelCls}>Condition Description</label>
-              <textarea value={form.condition_description} onChange={(e) => setForm({ ...form, condition_description: e.target.value })}
-                className={`${inputCls} min-h-[80px] resize-none`} placeholder="Describe specific wear, flaws, or highlights..." />
-            </div>
+
             <div>
               <label className={labelCls}>Description</label>
-              <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
-                className={`${inputCls} min-h-[100px] resize-none`} />
+              <textarea
+                value={form.descriptionHtml}
+                onChange={(e) => setForm({ ...form, descriptionHtml: e.target.value })}
+                className={`${inputCls} min-h-[120px] resize-none`}
+                placeholder="Product description (supports HTML)"
+              />
             </div>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <div className={`w-5 h-5 border flex items-center justify-center transition-all duration-150 ${
-                form.featured ? "bg-foreground border-foreground" : "border-foreground"
-              }`} onClick={() => setForm({ ...form, featured: !form.featured })}>
-                {form.featured && <Check className="w-3 h-3 text-background" />}
-              </div>
-              <span className="text-sm tracking-widest uppercase">Featured Product</span>
-            </label>
           </div>
 
-          {/* Save */}
-          <div className="flex gap-4 lg:static fixed bottom-0 left-0 right-0 bg-background border-t border-border lg:border-0 p-4 lg:p-0 z-30">
-            <button type="submit" className="flex-1 lg:flex-none bg-primary text-primary-foreground px-10 py-4 text-sm tracking-[0.15em] uppercase font-light hover:opacity-80 transition-opacity duration-150 min-h-[52px]">
-              {editing ? "Update Product" : "Create Product"}
+          {!editing && (
+            <div className="border border-border p-6 space-y-4">
+              <h3 className="text-sm tracking-[0.2em] uppercase font-light mb-4">Pricing</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>Price *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={form.variants[0]?.price || ""}
+                    onChange={(e) => {
+                      const newVariants = [...form.variants];
+                      newVariants[0] = { ...newVariants[0], price: e.target.value };
+                      setForm({ ...form, variants: newVariants });
+                    }}
+                    required
+                    className={inputCls}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>Inventory Quantity</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.variants[0]?.inventoryQuantity || 0}
+                    onChange={(e) => {
+                      const newVariants = [...form.variants];
+                      newVariants[0] = { ...newVariants[0], inventoryQuantity: parseInt(e.target.value) || 0 };
+                      setForm({ ...form, variants: newVariants });
+                    }}
+                    className={inputCls}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-4">
+            <button
+              type="submit"
+              disabled={saving}
+              className="bg-primary text-primary-foreground px-10 py-4 text-sm tracking-[0.15em] uppercase font-light hover:opacity-80 transition-opacity duration-150 min-h-[52px] disabled:opacity-50"
+            >
+              {saving ? "Saving..." : editing ? "Update in Shopify" : "Create in Shopify"}
             </button>
-            <button type="button" onClick={resetForm} className="flex-1 lg:flex-none border border-border px-10 py-4 text-sm tracking-[0.15em] uppercase font-light hover:border-foreground transition-all duration-150 min-h-[52px]">
+            <button
+              type="button"
+              onClick={resetForm}
+              className="border border-border px-10 py-4 text-sm tracking-[0.15em] uppercase font-light hover:border-foreground transition-all duration-150 min-h-[52px]"
+            >
               Cancel
             </button>
           </div>
@@ -338,51 +483,121 @@ const AdminProducts = () => {
     <AdminLayout>
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-base tracking-[0.3em] uppercase font-extralight">Products</h1>
-        <button onClick={() => setShowForm(true)}
-          className="bg-primary text-primary-foreground px-6 py-3 text-xs tracking-[0.15em] uppercase font-light flex items-center gap-2 hover:opacity-80 transition-opacity duration-150 min-h-[44px]">
-          <Plus className="w-4 h-4" /> Add Product
+        <div className="flex gap-3">
+          <button
+            onClick={() => fetchProducts()}
+            className="border border-border px-4 py-2 text-xs tracking-[0.15em] uppercase font-light flex items-center gap-2 hover:border-foreground transition-all min-h-[40px]"
+          >
+            <RefreshCw className="w-3 h-3" /> Refresh
+          </button>
+          <a
+            href="https://archive-curated-space-3cl85.myshopify.com/admin/products"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="border border-border px-4 py-2 text-xs tracking-[0.15em] uppercase font-light flex items-center gap-2 hover:border-foreground transition-all min-h-[40px]"
+          >
+            <ExternalLink className="w-3 h-3" /> Shopify Admin
+          </a>
+          <button
+            onClick={() => { resetForm(); setShowForm(true); }}
+            className="bg-primary text-primary-foreground px-6 py-2 text-xs tracking-[0.15em] uppercase font-light flex items-center gap-2 hover:opacity-80 min-h-[40px]"
+          >
+            <Plus className="w-3 h-3" /> Add Product
+          </button>
+        </div>
+      </div>
+
+      <div className="flex gap-3 mb-6">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            placeholder="Search products..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            className="w-full border border-border bg-transparent pl-11 pr-4 py-3 text-sm outline-none focus:border-foreground"
+          />
+        </div>
+        <button
+          onClick={handleSearch}
+          className="border border-border px-6 py-3 text-xs tracking-[0.15em] uppercase font-light hover:border-foreground transition-all"
+        >
+          Search
         </button>
       </div>
 
-      {/* Shopify Notice */}
-      <div className="bg-muted/50 border border-border p-4 mb-8 flex items-start gap-3">
-        <Info className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-        <p className="text-xs text-muted-foreground font-light leading-relaxed">
-          Your storefront pulls products directly from Shopify. Use the Shopify admin to manage your product catalog. This page is for internal tracking only.
+      <div className="bg-muted/30 border border-border px-4 py-3 mb-6">
+        <p className="text-xs text-muted-foreground">
+          Products sync directly with your Shopify store. For full product management including images, variants, and inventory, 
+          <a href="https://archive-curated-space-3cl85.myshopify.com/admin/products" target="_blank" rel="noopener noreferrer" className="underline ml-1">
+            use the Shopify Admin
+          </a>.
         </p>
       </div>
 
-      <div className="mb-6">
-        <div className="flex items-center border border-border px-4">
-          <Search className="w-4 h-4 text-muted-foreground" />
-          <input placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 bg-transparent outline-none text-sm py-3 px-3" />
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <p className="text-muted-foreground text-sm tracking-widest uppercase">Loading from Shopify...</p>
         </div>
-      </div>
-
-      <div className="border border-border">
-        <div className="grid grid-cols-[1fr_100px_100px_80px] gap-4 px-6 py-4 border-b border-border bg-muted">
-          <span className="text-xs tracking-widest uppercase text-muted-foreground">Product</span>
-          <span className="text-xs tracking-widest uppercase text-muted-foreground">Category</span>
-          <span className="text-xs tracking-widest uppercase text-muted-foreground">Price</span>
-          <span className="text-xs tracking-widest uppercase text-muted-foreground">Actions</span>
-        </div>
-        {filtered.map((p) => (
-          <div key={p.id} className="grid grid-cols-[1fr_100px_100px_80px] gap-4 px-6 py-5 border-b border-border last:border-b-0 items-center hover:bg-muted/30 transition-colors">
-            <div>
-              <span className="text-sm font-light">{p.name}</span>
-              {p.brands && <span className="block text-xs text-muted-foreground mt-0.5">{(p.brands as any).name}</span>}
-            </div>
-            <span className="text-xs text-muted-foreground tracking-widest uppercase">{p.category}</span>
-            <span className="text-sm font-light">${p.price}</span>
-            <div className="flex gap-3">
-              <button onClick={() => startEdit(p.id)} className="text-muted-foreground hover:text-foreground"><Pencil className="w-4 h-4" /></button>
-              <button onClick={() => handleDelete(p.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
-            </div>
+      ) : (
+        <div className="border border-border">
+          <div className="hidden md:grid grid-cols-[80px_1fr_120px_100px_80px_100px] gap-4 px-6 py-3 border-b border-border bg-muted">
+            <span className="text-[10px] tracking-widest uppercase text-muted-foreground">Image</span>
+            <span className="text-[10px] tracking-widest uppercase text-muted-foreground">Product</span>
+            <span className="text-[10px] tracking-widest uppercase text-muted-foreground">Type</span>
+            <span className="text-[10px] tracking-widest uppercase text-muted-foreground">Price</span>
+            <span className="text-[10px] tracking-widest uppercase text-muted-foreground">Stock</span>
+            <span className="text-[10px] tracking-widest uppercase text-muted-foreground">Actions</span>
           </div>
-        ))}
-        {filtered.length === 0 && <p className="px-6 py-10 text-center text-muted-foreground text-sm tracking-widest uppercase">No products</p>}
-      </div>
+
+          {products.map((p) => (
+            <div key={p.id} className="grid md:grid-cols-[80px_1fr_120px_100px_80px_100px] gap-4 px-6 py-4 border-b border-border last:border-b-0 items-center">
+              <div className="w-16 h-16 bg-secondary overflow-hidden hidden md:block">
+                {p.featuredImage ? (
+                  <img src={p.featuredImage.url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-[10px]">No image</div>
+                )}
+              </div>
+
+              <div className="md:col-span-1">
+                <p className="text-sm font-light truncate">{p.title}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{p.vendor}</p>
+                <span className={`text-[9px] uppercase tracking-wider px-2 py-0.5 inline-block mt-1 ${
+                  p.status === 'ACTIVE' ? 'bg-green-500/10 text-green-600' :
+                  p.status === 'DRAFT' ? 'bg-yellow-500/10 text-yellow-600' :
+                  'bg-muted text-muted-foreground'
+                }`}>
+                  {p.status}
+                </span>
+              </div>
+
+              <span className="text-xs text-muted-foreground hidden md:block">{p.productType || '—'}</span>
+
+              <span className="text-sm font-light hidden md:block">
+                {formatPrice(p.priceRangeV2.minVariantPrice.amount)}
+              </span>
+
+              <span className="text-sm font-light hidden md:block">{p.totalInventory}</span>
+
+              <div className="flex gap-3">
+                <button onClick={() => startEdit(p.id)} className="text-muted-foreground hover:text-foreground transition-colors">
+                  <Pencil className="w-4 h-4" />
+                </button>
+                <button onClick={() => handleDelete(p.id)} className="text-muted-foreground hover:text-destructive transition-colors">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {products.length === 0 && !loading && (
+            <p className="px-6 py-12 text-center text-muted-foreground text-xs tracking-widest uppercase">
+              No products found
+            </p>
+          )}
+        </div>
+      )}
     </AdminLayout>
   );
 };
