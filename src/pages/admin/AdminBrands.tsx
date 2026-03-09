@@ -75,7 +75,7 @@ const AdminBrands = () => {
             <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
               className="w-full border border-border bg-transparent px-3 py-2 text-[11px] outline-none min-h-[80px] resize-none" />
           </div>
-          <button type="submit" className="bg-primary text-primary-foreground px-8 py-3 editorial-heading text-[11px] min-h-[48px]">
+          <button type="submit" className="bg-primary text-primary-foreground px-8 py-3 text-xs tracking-[0.15em] uppercase font-light hover:opacity-80 transition-opacity min-h-[48px]">
             {editing ? "Update" : "Create"}
           </button>
         </form>
