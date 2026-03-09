@@ -42,9 +42,13 @@ const Collection = () => {
   const filter = searchParams.get("filter") || "all";
   const [sortOpen, setSortOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(true);
+  const [colorFilterOpen, setColorFilterOpen] = useState(false);
+  const [brandFilterOpen, setBrandFilterOpen] = useState(false);
   const [currentSort, setCurrentSort] = useState("Featured");
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedColors, setSelectedColors] = useState<string[]>([]);
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const addItem = useCartStore(state => state.addItem);
   const isLoading = useCartStore(state => state.isLoading);
   const gridRef = useRef<HTMLDivElement>(null);
