@@ -88,7 +88,7 @@ const AdminBrands = () => {
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-[14px] tracking-[0.3em] uppercase font-extralight">Brands</h1>
         <button onClick={() => { setForm({ name: "", logo_url: "", description: "" }); setShowForm(true); }}
-          className="bg-primary text-primary-foreground px-6 py-2 editorial-heading text-[10px] flex items-center gap-2 hover:opacity-80 min-h-[40px]">
+          className="bg-primary text-primary-foreground px-6 py-2 text-xs tracking-[0.15em] uppercase font-light flex items-center gap-2 hover:opacity-80 transition-opacity min-h-[40px]">
           <Plus className="w-3 h-3" /> Add Brand
         </button>
       </div>
