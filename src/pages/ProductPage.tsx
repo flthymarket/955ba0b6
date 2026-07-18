@@ -343,31 +343,22 @@ const ProductPage = () => {
                       transform: relatedVisible ? 'translateY(0)' : 'translateY(20px)',
                       transition: 'all 0.7s ease-out'
                     }}>
-                        <div className="aspect-[3/4] overflow-hidden mb-3 bg-transparent relative p-3">
+                        <div className="product-frame mb-3">
                           {img && (
-                            <div className="relative w-full h-full">
-                              <img
-                                src={img.url}
-                                alt={img.altText || rp.node.title}
-                                className="w-full h-full object-contain transition-opacity duration-300"
-                                loading="lazy"
-                              />
+                            <>
+                              <img src={img.url} alt={img.altText || rp.node.title} className={`absolute inset-0 ${hoverImg ? 'group-hover:opacity-0' : ''}`} loading="lazy" />
                               {hoverImg && (
-                                <img
-                                  src={hoverImg.url}
-                                  alt={img.altText || rp.node.title}
-                                  className="absolute inset-0 w-full h-full object-contain opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                                  loading="lazy"
-                                />
+                                <img src={hoverImg.url} alt={img.altText || rp.node.title} className="absolute inset-0 opacity-0 group-hover:opacity-100" loading="lazy" />
                               )}
-                            </div>
+                            </>
                           )}
                           <button className="absolute top-3 right-3 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                             <Bookmark className="w-4 h-4" />
                           </button>
                         </div>
-                <p className="text-xs tracking-[0.05em] font-bold mb-1" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>{rp.node.title}</p>
-                        <p className="text-xs tracking-[0.1em] font-light text-muted-foreground">
+                        <p className="editorial-heading text-muted-foreground mb-1">{rp.node.vendor || "FLTHYMRKT"}</p>
+                        <p className="product-title mb-1">{rp.node.title}</p>
+                        <p className="product-price">
                           ${parseFloat(rpPrice.amount).toLocaleString(undefined, { minimumFractionDigits: 0 })}
                         </p>
                       </Link>);
