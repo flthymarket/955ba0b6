@@ -259,36 +259,35 @@ const Collection = () => {
                         transition: 'all 0.6s ease-out',
                       }}>
                       <Link to={`/product/${product.node.handle}`} className="block">
-                        <div className="aspect-[3/4] overflow-hidden mb-3 bg-transparent relative">
+                        <div className="product-frame mb-3">
                           {img ? (
-                            <div className="relative w-full h-full">
+                            <>
                               <img
                                 src={img.url}
                                 alt={img.altText || product.node.title}
-                                className="w-full h-full object-contain transition-opacity duration-300"
+                                className={`absolute inset-0 ${hoverImg ? 'group-hover:opacity-0' : ''}`}
                                 loading="lazy"
                               />
                               {hoverImg && (
                                 <img
                                   src={hoverImg.url}
                                   alt={img.altText || product.node.title}
-                                  className="absolute inset-0 w-full h-full object-contain opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                                  className="absolute inset-0 opacity-0 group-hover:opacity-100"
                                   loading="lazy"
                                 />
                               )}
-                            </div>
+                            </>
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">No Image</div>
+                            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">No Image</div>
                           )}
                           <button className="absolute top-3 right-3 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                            <Bookmark className="w-5 h-5 text-foreground" />
+                            <Bookmark className="w-4 h-4 text-foreground" />
                           </button>
                         </div>
-                        <div className="px-1 pt-3 pb-2">
-                          <p className="text-sm sm:text-base font-bold mb-1 leading-tight text-foreground" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
-                            {product.node.title}
-                          </p>
-                          <p className="text-xs sm:text-sm tracking-[0.1em] font-light text-muted-foreground">
+                        <div className="px-0.5 pb-2">
+                          <p className="editorial-heading text-muted-foreground mb-1">{product.node.vendor || "FLTHYMRKT"}</p>
+                          <p className="product-title mb-1.5">{product.node.title}</p>
+                          <p className="product-price">
                             ${parseFloat(price.amount).toLocaleString(undefined, { minimumFractionDigits: 0 })}
                           </p>
                         </div>

@@ -146,11 +146,10 @@ const ProductPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10 lg:gap-16">
           {/* Images */}
           <div>
-            <div className="aspect-[3/4] bg-transparent overflow-hidden mb-3 relative p-6">
+            <div className="product-frame mb-3">
               {mainImage ?
-              <img src={mainImage.url} alt={mainImage.altText || product.title} className="w-full h-full object-contain" /> :
-
-              <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">No Image</div>
+                <img src={mainImage.url} alt={mainImage.altText || product.title} className="absolute inset-0" /> :
+                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">No Image</div>
               }
               <button className="absolute top-4 right-4 p-2 hover-gray transition-all">
                 <Bookmark className="w-5 h-5" />
