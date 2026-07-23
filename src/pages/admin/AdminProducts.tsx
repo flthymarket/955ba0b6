@@ -518,14 +518,6 @@ const AdminProducts = () => {
         </button>
       </div>
 
-      <div className="bg-muted/30 border border-border px-4 py-3 mb-6">
-        <p className="text-xs text-muted-foreground">
-          Products sync directly with your Shopify store. For full product management including images, variants, and inventory, 
-          <a href="https://archive-curated-space-3cl85.myshopify.com/admin/products" target="_blank" rel="noopener noreferrer" className="underline ml-1">
-            use the Shopify Admin
-          </a>.
-        </p>
-      </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
