@@ -490,14 +490,6 @@ const AdminProducts = () => {
           >
             <RefreshCw className="w-3 h-3" /> Refresh
           </button>
-          <a
-            href="https://archive-curated-space-3cl85.myshopify.com/admin/products"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="border border-border px-4 py-2 text-xs tracking-[0.15em] uppercase font-light flex items-center gap-2 hover:border-foreground transition-all min-h-[40px]"
-          >
-            <ExternalLink className="w-3 h-3" /> Shopify Admin
-          </a>
           <button
             onClick={() => { resetForm(); setShowForm(true); }}
             className="bg-primary text-primary-foreground px-6 py-2 text-xs tracking-[0.15em] uppercase font-light flex items-center gap-2 hover:opacity-80 min-h-[40px]"
