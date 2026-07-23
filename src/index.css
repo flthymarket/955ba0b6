@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter+Tight:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,48 +6,48 @@
 
 @layer base {
   :root {
-    --background: 40 25% 96%;
+    --background: 0 0% 100%;
     --foreground: 0 0% 5%;
 
-    --card: 40 25% 96%;
+    --card: 0 0% 100%;
     --card-foreground: 0 0% 5%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 5%;
 
     --primary: 0 0% 5%;
-    --primary-foreground: 40 25% 96%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 40 15% 92%;
+    --secondary: 0 0% 96%;
     --secondary-foreground: 0 0% 7%;
 
-    --muted: 40 15% 92%;
-    --muted-foreground: 0 0% 35%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 30%;
 
-    --accent: 40 15% 92%;
+    --accent: 0 0% 96%;
     --accent-foreground: 0 0% 5%;
 
     --destructive: 352 82% 42%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 85%;
-    --input: 0 0% 85%;
+    --border: 0 0% 88%;
+    --input: 0 0% 88%;
     --ring: 0 0% 5%;
 
     --radius: 0px;
 
-    --sidebar-background: 40 25% 96%;
+    --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 0 0% 15%;
     --sidebar-primary: 0 0% 5%;
-    --sidebar-primary-foreground: 40 25% 96%;
-    --sidebar-accent: 40 15% 92%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 96%;
     --sidebar-accent-foreground: 0 0% 5%;
     --sidebar-border: 0 0% 88%;
     --sidebar-ring: 0 0% 5%;
 
-    --footer-bg: 0 0% 5%;
-    --footer-fg: 40 25% 96%;
-    --hover-highlight: 40 15% 88%;
+    --footer-bg: 0 0% 100%;
+    --footer-fg: 0 0% 5%;
+    --hover-highlight: 0 0% 94%;
     --sale: 352 82% 42%;
   }
 }
@@ -55,76 +55,86 @@
 @layer base {
   * { @apply border-border; }
 
+  html, body { min-height: 100vh; letter-spacing: 0; }
+
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter Tight', system-ui, sans-serif;
-    font-weight: 400;
-    letter-spacing: 0;
+    font-family: 'Archivo', Arial, Helvetica, sans-serif;
+    font-weight: 500;
     font-size: 15px;
+    text-transform: uppercase;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Space Grotesk', system-ui, sans-serif;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    text-transform: none;
+    font-family: 'Archivo Black', Arial Black, Arial, sans-serif;
+    font-weight: 900;
+    letter-spacing: 0;
+    text-transform: uppercase;
   }
+
+  input, textarea, select { text-transform: uppercase; }
 }
 
 @layer utilities {
-  .font-display { font-family: 'Space Grotesk', system-ui, sans-serif; font-weight: 700; }
-  .font-mono-ui { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
-  .font-akira { font-family: 'Space Grotesk', system-ui, sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: -0.03em; }
+  .font-display { font-family: 'Archivo Black', Arial Black, sans-serif; font-weight: 900; }
+  .font-mono-ui { font-family: 'Archivo', Arial, sans-serif; font-weight: 700; }
+  .font-akira { font-family: 'Archivo Black', Arial Black, sans-serif; font-weight: 900; text-transform: uppercase; letter-spacing: 0; }
 
   .nav-link {
-    @apply text-[11px] tracking-[0.18em] uppercase transition-colors duration-150;
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
-    font-weight: 500;
+    @apply text-[16px] uppercase transition-colors duration-150;
+    font-family: 'Archivo', Arial, sans-serif;
+    font-weight: 700;
+    letter-spacing: 0;
   }
-  .nav-link:hover { color: hsl(var(--muted-foreground)); }
+  .nav-link:hover { text-decoration: underline; }
 
   .editorial-heading {
-    @apply text-[11px] tracking-[0.22em] uppercase;
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
-    font-weight: 500;
+    @apply text-[11px] uppercase;
+    font-family: 'Archivo', Arial, sans-serif;
+    font-weight: 700;
+    letter-spacing: 0;
   }
 
   .product-title {
-    @apply text-[13px] leading-tight;
-    font-family: 'Space Grotesk', system-ui, sans-serif;
-    font-weight: 600;
-    letter-spacing: -0.005em;
+    @apply text-[15px] leading-tight text-center;
+    font-family: 'Archivo', Arial, sans-serif;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: uppercase;
   }
 
   .product-price {
-    @apply text-[12px] tracking-[0.02em];
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
-    font-weight: 500;
+    @apply text-[14px] text-center block;
+    font-family: 'Archivo', Arial, sans-serif;
+    font-weight: 600;
   }
 
   .section-title {
-    @apply text-[11px] tracking-[0.3em] uppercase text-center;
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
-    font-weight: 500;
+    @apply text-[13px] uppercase text-center;
+    font-family: 'Archivo Black', Arial Black, sans-serif;
+    font-weight: 900;
   }
 
-  /* Uniform letterbox product frame — same size, image never cropped */
+  /* EYEZY-style product frame: image fits fully, centered, no crop */
   .product-frame {
     position: relative;
     width: 100%;
-    aspect-ratio: 4 / 5;
-    background-color: hsl(var(--secondary));
+    aspect-ratio: 1 / 1;
+    background-color: transparent;
     overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   .product-frame img {
-    width: 100%;
-    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
     object-fit: contain;
-    padding: 8%;
-    transition: opacity 300ms ease;
+    transition: opacity 250ms ease;
   }
 
-  /* Infinite marquee */
   @keyframes marquee-x {
     from { transform: translateX(0); }
     to   { transform: translateX(-50%); }
@@ -140,23 +150,14 @@
   .marquee-slow { animation-duration: 60s; }
   .marquee-track { display: flex; flex-shrink: 0; align-items: center; }
 
-  .kill-bar {
-    height: 6px;
-    background: hsl(var(--foreground));
-    width: 100%;
-  }
+  .kill-bar { height: 1px; background: hsl(var(--foreground)); width: 100%; }
 
   .hover-invert { transition: background-color 150ms ease, color 150ms ease; }
   .hover-invert:hover { background-color: hsl(var(--foreground)); color: hsl(var(--background)); }
-
   .hover-gray { @apply transition-colors duration-200; }
   .hover-gray:hover { background-color: hsl(var(--hover-highlight)); }
 
-  /* Legacy marquee kept for AnnouncementBanner */
-  @keyframes marquee {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
-  }
+  @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
   .animate-marquee { animation: marquee 30s linear infinite; display: flex; gap: 2rem; width: max-content; }
 
   @keyframes slide-in-right { from { transform: translateX(100%); } to { transform: translateX(0); } }
