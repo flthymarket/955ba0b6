@@ -41,10 +41,10 @@ const Index = () => {
     (async () => {
       try {
         const [prodData, heroData] = await Promise.all([
-          storefrontApiRequest(PRODUCTS_QUERY, { first: 4 }),
+          storefrontApiRequest(PRODUCTS_QUERY, { first: 12 }),
           supabase.from("hero_banners").select("*").eq("enabled", true).order("sort_order").limit(1).maybeSingle(),
         ]);
-        if (prodData?.data?.products?.edges) setProducts(prodData.data.products.edges.slice(0, 4));
+        if (prodData?.data?.products?.edges) setProducts(prodData.data.products.edges.slice(0, 12));
         if (heroData.data) setHero(heroData.data as any);
       } catch (err) {
         console.error("Failed to fetch:", err);
