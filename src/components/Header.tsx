@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, User, ShoppingBag, ChevronDown, Menu, X } from "lucide-react";
+import { Search, Menu, X } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/hooks/useAuth";
 import SearchOverlay from "./SearchOverlay";
@@ -9,129 +9,93 @@ import AnnouncementBanner from "./AnnouncementBanner";
 import { useCartStore } from "@/stores/cartStore";
 
 const navLinks = [
-  { label: "New Arrivals", href: "/collection?filter=new" },
-  { label: "Brands", href: "/brands" },
-  { label: "All", href: "/collection" },
+  { label: "Shop", href: "/collection" },
+  { label: "New", href: "/collection?filter=new" },
   { label: "Tops", href: "/collection?filter=tops" },
   { label: "Bottoms", href: "/collection?filter=bottoms" },
   { label: "Accessories", href: "/collection?filter=accessories" },
-];
-
-const helpLinks = [
-  { label: "Contact Support", href: "/help#contact" },
-  { label: "Shipping Policy", href: "/help#shipping-policy" },
-  { label: "Refund Policy", href: "/help#refund-policy" },
-  { label: "Privacy Policy", href: "/help#privacy-policy" },
-  { label: "Terms of Service", href: "/help#terms-of-service" },
+  { label: "Brands", href: "/brands" },
 ];
 
 const Header = () => {
-  const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [helpOpen, setHelpOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user } = useAuth();
   const totalItems = useCartStore((state) => state.items.reduce((sum, i) => sum + i.quantity, 0));
 
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 10);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
   return (
     <>
-      {/* Announcement banner - not fixed, scrolls with page at top */}
       <div className="w-full z-[60] relative">
         <AnnouncementBanner />
       </div>
 
-      <header
-        className={`sticky top-0 left-0 right-0 z-50 transition-all duration-500 ${
-          scrolled ? "bg-background/95 backdrop-blur-sm border-b border-border" : "bg-background"
-        }`}
-      >
-        <div className="border-b border-border">
-          <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-2 flex justify-between items-center">
-            <div className="flex items-center gap-6">
-              <div className="relative">
-                <button
-                  onClick={() => setHelpOpen(!helpOpen)}
-                  className="text-xs tracking-[0.2em] uppercase font-light text-muted-foreground hover-gray px-2 py-1 transition-all flex items-center gap-1"
-                >
-                  Help <ChevronDown className="w-3 h-3" />
-                </button>
-                {helpOpen && (
-                  <div className="absolute left-0 top-full mt-2 bg-background border border-border py-3 px-6 min-w-[220px] z-50 animate-fade-in">
-                    {helpLinks.map((link) => (
-                      <Link
-                        key={link.label}
-                        to={link.href}
-                        className="block py-2 text-sm tracking-[0.15em] uppercase font-light hover-gray px-2 -mx-2 transition-all"
-                        onClick={() => setHelpOpen(false)}
-                      >
-                        {link.label}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+      <header className="sticky top-0 left-0 right-0 z-50 bg-background border-b border-border">
+        <div className="max-w-[1600px] mx-auto px-6 md:px-10">
+          <div className="flex items-center py-5">
+            {/* Left nav */}
+            <nav className="hidden lg:flex items-center gap-4 flex-1">
+              {navLinks.map((link) => (
+                <Link key={link.label} to={link.href} className="nav-link">
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
 
-        <div className="max-w-[1400px] mx-auto px-4 md:px-6">
-          <div className="relative flex items-center justify-center py-3 md:py-4">
-            <button className="lg:hidden absolute left-0 p-2 hover-gray" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            {/* Mobile burger */}
+            <button
+              className="lg:hidden flex-1 text-left"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Menu"
+            >
+              {mobileMenuOpen ? <X className="w-7 h-7" /> : <Menu className="w-7 h-7" />}
             </button>
 
-            <Link to="/" className="flex-shrink-0">
-              <img src={logo} alt="FLTHY MRKT" className="h-14 sm:h-16 md:h-20 lg:h-24 w-auto" />
+            {/* Centered logo */}
+            <Link to="/" className="flex-shrink-0 mx-auto lg:mx-4">
+              <img src={logo} alt="FLTHYMRKT" className="h-16 md:h-20 lg:h-24 w-auto" />
             </Link>
 
-            <div className="flex items-center gap-4 md:gap-6 absolute right-0">
-              <button onClick={() => setSearchOpen(true)} className="p-2 hover-gray transition-all duration-200">
-                <Search className="w-5 h-5" />
+            {/* Right */}
+            <div className="flex items-center gap-4 md:gap-5 flex-1 justify-end">
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="nav-link hidden md:inline"
+                aria-label="Search"
+              >
+                <Search className="w-5 h-5 inline" />
               </button>
-              <Link to={user ? "/account" : "/auth"} className="p-2 hover-gray transition-all duration-200">
-                <User className="w-5 h-5" />
+              <Link to={user ? "/account" : "/auth"} className="nav-link hidden md:inline">
+                Account
               </Link>
-              <button onClick={() => setCartOpen(true)} className="p-2 hover-gray transition-all duration-200 relative">
-                <ShoppingBag className="w-5 h-5" />
-                {totalItems > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-foreground text-background text-[10px] flex items-center justify-center rounded-full">
-                    {totalItems}
-                  </span>
-                )}
+              <button onClick={() => setCartOpen(true)} className="nav-link">
+                Cart ({totalItems})
               </button>
             </div>
           </div>
-
-          <nav className="hidden lg:flex items-center justify-center gap-6 pb-3 border-b border-border">
-            {navLinks.map((link) => (
-              <Link key={link.label} to={link.href} className="text-sm tracking-[0.15em] uppercase font-light hover-gray px-3 py-1.5 transition-all duration-200">
-                {link.label}
-              </Link>
-            ))}
-          </nav>
         </div>
       </header>
 
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-40 bg-background pt-28 px-6 animate-fade-in overflow-y-auto">
-          <nav className="flex flex-col gap-4">
+          <nav className="flex flex-col gap-6 items-center">
             {navLinks.map((link) => (
               <Link
                 key={link.label}
                 to={link.href}
-                className="text-lg tracking-[0.2em] uppercase font-light hover-gray px-3 py-3 transition-all min-h-[48px] flex items-center"
+                className="nav-link text-2xl"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {link.label}
               </Link>
             ))}
+            <Link
+              to={user ? "/account" : "/auth"}
+              className="nav-link text-2xl"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Account
+            </Link>
           </nav>
         </div>
       )}
