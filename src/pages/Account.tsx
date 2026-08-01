@@ -1,295 +1,327 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Send, Clock, CheckCircle2, DollarSign } from "lucide-react";
-import logo from "@/assets/logo.png";
+import { money, productUrl } from "@/lib/store";
+import { Loader2, LogOut, Package, User, Heart, MapPin } from "lucide-react";
+
+interface OrderRow {
+  id: string;
+  order_number: string | null;
+  total: number;
+  status: string | null;
+  payment_method: string;
+  payment_status: string;
+  tracking: string | null;
+  created_at: string | null;
+}
+
+interface WishRow {
+  id: string;
+  product_id: string;
+  products: {
+    id: string;
+    name: string;
+    slug: string | null;
+    price: number;
+    product_images: { url: string; sort_order: number | null }[];
+  } | null;
+}
+
+interface AddressRow {
+  id: string;
+  label: string | null;
+  address_line1: string;
+  address_line2: string | null;
+  city: string;
+  state: string | null;
+  postal_code: string;
+  country: string;
+  is_default: boolean | null;
+}
+
+type Tab = "orders" | "profile" | "wishlist" | "addresses";
+
+const TABS: { key: Tab; label: string; icon: typeof Package }[] = [
+  { key: "orders", label: "Orders", icon: Package },
+  { key: "wishlist", label: "Wishlist", icon: Heart },
+  { key: "addresses", label: "Addresses", icon: MapPin },
+  { key: "profile", label: "Profile", icon: User },
+];
+
+const inputCls =
+  "w-full border border-border bg-transparent px-3 py-3 text-[13px] outline-none focus:border-foreground transition-colors min-h-[48px]";
 
 const Account = () => {
-  const { user, isAdmin, loading, signOut } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [orders, setOrders] = useState<any[]>([]);
-  const [offers, setOffers] = useState<any[]>([]);
-  const [profile, setProfile] = useState<{ name: string; email: string }>({ name: "", email: "" });
-  const [activeTab, setActiveTab] = useState<"profile" | "orders" | "offers">("profile");
-  const [selectedOffer, setSelectedOffer] = useState<any>(null);
-  const [messages, setMessages] = useState<any[]>([]);
-  const [newMessage, setNewMessage] = useState("");
+
+  const [tab, setTab] = useState<Tab>("orders");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const [orders, setOrders] = useState<OrderRow[]>([]);
+  const [wishlist, setWishlist] = useState<WishRow[]>([]);
+  const [addresses, setAddresses] = useState<AddressRow[]>([]);
+  const [profile, setProfile] = useState({ name: "", email: "", phone: "" });
+
+  const [newAddr, setNewAddr] = useState({
+    label: "",
+    address_line1: "",
+    address_line2: "",
+    city: "",
+    state: "",
+    postal_code: "",
+    country: "US",
+  });
 
   useEffect(() => {
-    if (!loading && !user) navigate("/auth");
-  }, [user, loading, navigate]);
+    if (!authLoading && !user) navigate("/auth");
+  }, [user, authLoading, navigate]);
 
-  useEffect(() => {
+  const load = async () => {
     if (!user) return;
-    supabase.from("profiles").select("name, email").eq("user_id", user.id).single().then(({ data }) => {
-      if (data) setProfile({ name: data.name || "", email: data.email || "" });
+    setLoading(true);
+    const [ordersRes, wishRes, addrRes, profileRes] = await Promise.all([
+      supabase
+        .from("orders")
+        .select("id, order_number, total, status, payment_method, payment_status, tracking, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("wishlist")
+        .select("id, product_id, products ( id, name, slug, price, product_images ( url, sort_order ) )")
+        .eq("user_id", user.id),
+      supabase.from("saved_addresses").select("*").eq("user_id", user.id).order("is_default", { ascending: false }),
+      supabase.from("profiles").select("name, email, phone").eq("user_id", user.id).maybeSingle(),
+    ]);
+
+    setOrders((ordersRes.data as OrderRow[]) || []);
+    setWishlist((wishRes.data as unknown as WishRow[]) || []);
+    setAddresses((addrRes.data as AddressRow[]) || []);
+    setProfile({
+      name: profileRes.data?.name || "",
+      email: profileRes.data?.email || user.email || "",
+      phone: profileRes.data?.phone || "",
     });
-    supabase.from("orders").select("id, total, status, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).then(({ data }) => {
-      if (data) setOrders(data);
-    });
-    supabase.from("offers").select("*, products(name, price)").eq("user_id", user.id).order("created_at", { ascending: false }).then(({ data }) => {
-      if (data) setOffers(data as any);
-    });
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (user) load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const openOfferChat = async (offer: any) => {
-    setSelectedOffer(offer);
-    const { data } = await supabase
-      .from("chat_messages")
-      .select("*")
-      .eq("offer_id", offer.id)
-      .order("created_at", { ascending: true });
-    if (data) setMessages(data);
-
-    const channel = supabase
-      .channel(`user-offer-${offer.id}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages", filter: `offer_id=eq.${offer.id}` },
-        (payload) => setMessages((prev) => [...prev, payload.new as any])
-      ).subscribe();
-
-    return () => { supabase.removeChannel(channel); };
+  const saveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ name: profile.name, phone: profile.phone })
+      .eq("user_id", user.id);
+    setSaving(false);
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else toast({ title: "Saved", description: "Your profile has been updated." });
   };
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedOffer || !user) return;
-    await supabase.from("chat_messages").insert({
-      offer_id: selectedOffer.id,
-      sender_id: user.id,
-      message: newMessage.trim(),
+  const addAddress = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setSaving(true);
+    const { error } = await supabase.from("saved_addresses").insert({
+      ...newAddr,
+      user_id: user.id,
+      is_default: addresses.length === 0,
     });
-    setNewMessage("");
+    setSaving(false);
+    if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
+    setNewAddr({ label: "", address_line1: "", address_line2: "", city: "", state: "", postal_code: "", country: "US" });
+    load();
   };
 
-  const handleAcceptCounter = async () => {
-    if (!selectedOffer || !user) return;
-    await supabase.from("offers").update({ status: "accepted" }).eq("id", selectedOffer.id);
-    await supabase.from("chat_messages").insert({
-      offer_id: selectedOffer.id,
-      sender_id: user.id,
-      message: `I accept the counter offer of $${selectedOffer.counter_price?.toLocaleString()}.`,
-    });
-    toast({ title: "Offer accepted! Staff will send you a checkout link." });
-    setSelectedOffer({ ...selectedOffer, status: "accepted" });
-    // Refresh offers
-    const { data } = await supabase.from("offers").select("*, products(name, price)").eq("user_id", user.id).order("created_at", { ascending: false });
-    if (data) setOffers(data as any);
+  const removeAddress = async (id: string) => {
+    await supabase.from("saved_addresses").delete().eq("id", id);
+    load();
   };
 
-  const handleSignOut = async () => {
-    await signOut();
+  const removeWish = async (id: string) => {
+    await supabase.from("wishlist").delete().eq("id", id);
+    load();
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
     navigate("/");
   };
 
-  if (loading || !user) return null;
-
-  const statusColors: Record<string, string> = {
-    pending: "text-yellow-600",
-    countered: "text-blue-600",
-    accepted: "text-green-600",
-    declined: "text-destructive",
-  };
-
-  const statusIcons: Record<string, any> = {
-    pending: Clock,
-    countered: DollarSign,
-    accepted: CheckCircle2,
-  };
-
-  // Offer chat view
-  if (selectedOffer) {
-    const StatusIcon = statusIcons[selectedOffer.status] || Clock;
+  if (authLoading || !user) {
     return (
-      <main className="pt-32 md:pt-36 pb-24 animate-fade-in">
-        <div className="max-w-[720px] mx-auto px-4 md:px-8">
-          <button onClick={() => setSelectedOffer(null)} className="text-sm tracking-[0.15em] uppercase font-light text-muted-foreground mb-8 hover:opacity-50 transition-opacity">← Back to Offers</button>
-
-          {/* Product Info Card */}
-          <div className="border border-border p-6 mb-6 flex justify-between items-center">
-            <div>
-              <p className="text-sm font-light">{(selectedOffer.products as any)?.name}</p>
-              <p className="text-xs text-muted-foreground mt-1">Listed: ${(selectedOffer.products as any)?.price?.toLocaleString()}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-muted-foreground">Your offer: ${selectedOffer.offered_price.toLocaleString()}</p>
-              {selectedOffer.counter_price && (
-                <p className="text-xs text-blue-600 mt-0.5">Counter: ${selectedOffer.counter_price.toLocaleString()}</p>
-              )}
-              <p className={`text-xs tracking-widest uppercase mt-1 ${statusColors[selectedOffer.status || "pending"]}`}>
-                <StatusIcon className="w-3 h-3 inline mr-1" />
-                {selectedOffer.status}
-              </p>
-            </div>
-          </div>
-
-          {/* Response time notice */}
-          <div className="bg-muted/50 border border-border p-4 mb-6 text-center">
-            <p className="text-xs text-muted-foreground tracking-wide font-light">
-              <Clock className="w-3 h-3 inline mr-1.5" />
-              Please allow some time for our staff to review and respond to your offer.
-            </p>
-          </div>
-
-          {/* Counter Offer Action */}
-          {selectedOffer.status === "countered" && selectedOffer.counter_price && (
-            <div className="border border-blue-200 bg-blue-50/50 p-5 mb-6 text-center space-y-3">
-              <p className="text-sm font-light">Staff countered with <strong>${selectedOffer.counter_price.toLocaleString()}</strong></p>
-              <div className="flex gap-3 justify-center">
-                <button
-                  onClick={handleAcceptCounter}
-                  className="bg-foreground text-background px-6 py-3 text-xs tracking-[0.2em] uppercase font-light hover:opacity-80 transition-opacity min-h-[44px]"
-                >
-                  Accept & Pay
-                </button>
-                <button
-                  onClick={() => {/* just continue chatting */}}
-                  className="border border-border px-6 py-3 text-xs tracking-[0.2em] uppercase font-light hover:border-foreground transition-all min-h-[44px]"
-                >
-                  Negotiate
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Checkout Link */}
-          {selectedOffer.status === "accepted" && selectedOffer.checkout_url && (
-            <div className="border border-green-200 bg-green-50/50 p-5 mb-6 text-center">
-              <p className="text-sm font-light mb-3">Your offer has been accepted!</p>
-              <a
-                href={selectedOffer.checkout_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block bg-foreground text-background px-8 py-3 text-xs tracking-[0.2em] uppercase font-light hover:opacity-80 transition-opacity min-h-[44px]"
-              >
-                Pay Now →
-              </a>
-            </div>
-          )}
-
-          {/* Chat Messages */}
-          <div className="border border-border h-[400px] overflow-y-auto p-5 space-y-4 mb-4">
-            {messages.length === 0 && (
-              <p className="text-center text-muted-foreground text-xs py-8">No messages yet. Start the conversation!</p>
-            )}
-            {messages.map((m) => {
-              const isMe = m.sender_id === user.id;
-              return (
-                <div key={m.id} className={`flex gap-3 ${isMe ? "justify-end" : ""}`}>
-                  {!isMe && <img src={logo} alt="FLTHYMRKT" className="w-7 h-7 object-contain flex-shrink-0 mt-1" />}
-                  <div className={`max-w-[75%] p-4 ${isMe ? "bg-foreground text-background" : "bg-muted"}`}>
-                    <p className="text-sm font-light leading-relaxed">{m.message}</p>
-                    <p className="text-[9px] opacity-50 mt-2">{m.created_at ? new Date(m.created_at).toLocaleTimeString() : ""}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Message Input */}
-          <div className="flex gap-2">
-            <input value={newMessage} onChange={(e) => setNewMessage(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-              placeholder="Type a message..."
-              className="flex-1 border border-border bg-transparent px-4 py-3 text-sm outline-none focus:border-foreground transition-colors" />
-            <button onClick={sendMessage} className="bg-primary text-primary-foreground px-5 py-3 min-h-[48px] hover:opacity-80 transition-opacity">
-              <Send className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
+      <main className="min-h-[60vh] flex items-center justify-center">
+        <Loader2 className="w-5 h-5 animate-spin" />
       </main>
     );
   }
 
   return (
-    <main className="pt-32 md:pt-36 pb-24 animate-fade-in">
-      <div className="max-w-[720px] mx-auto px-4 md:px-8">
-        <div className="flex items-center justify-between mb-10">
-          <h1 className="text-lg md:text-xl tracking-[0.3em] font-extralight uppercase">My Account</h1>
-          <button onClick={handleSignOut} className="text-xs tracking-[0.2em] uppercase font-light text-muted-foreground hover:opacity-50 transition-opacity">Sign Out</button>
+    <main className="max-w-[1200px] mx-auto px-6 md:px-10 py-14 animate-fade-in">
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6 mb-8">
+        <div>
+          <h1 className="font-display text-2xl md:text-3xl">Account</h1>
+          <p className="editorial-heading text-muted-foreground mt-2">{profile.email}</p>
         </div>
+        <button onClick={signOut} className="nav-link flex items-center gap-2 border border-foreground px-5 py-2.5 hover:bg-foreground hover:text-background transition-colors">
+          <LogOut className="w-3.5 h-3.5" /> Sign Out
+        </button>
+      </div>
 
-        {isAdmin && (
-          <Link to="/admin" className="block mb-10 border border-border p-4 text-center text-sm tracking-[0.15em] uppercase font-light hover:bg-foreground hover:text-background transition-all duration-300">
-            Admin Dashboard →
-          </Link>
-        )}
-
-        {/* Tabs */}
-        <div className="flex gap-8 border-b border-border mb-10">
-          {(["profile", "orders", "offers"] as const).map((tab) => (
-            <button key={tab} onClick={() => setActiveTab(tab)}
-              className={`text-sm tracking-[0.15em] uppercase font-light pb-4 transition-opacity ${activeTab === tab ? "opacity-100 border-b-2 border-foreground" : "opacity-40 hover:opacity-70"}`}>
-              {tab === "profile" ? "Profile" : tab === "orders" ? "Orders" : "My Offers"}
+      <div className="grid md:grid-cols-[200px_1fr] gap-10">
+        {/* Side nav */}
+        <nav className="flex md:flex-col gap-1 overflow-x-auto md:overflow-visible border-b md:border-b-0 border-border pb-2 md:pb-0">
+          {TABS.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`nav-link flex items-center gap-2 px-4 py-3 whitespace-nowrap text-left transition-colors ${
+                tab === t.key ? "bg-foreground text-background" : "hover:bg-muted"
+              }`}
+            >
+              <t.icon className="w-3.5 h-3.5" /> {t.label}
             </button>
           ))}
-        </div>
+        </nav>
 
-        {activeTab === "profile" && (
-          <div className="space-y-5 text-sm font-light">
-            <div className="flex justify-between items-center py-3 border-b border-border">
-              <span className="text-muted-foreground tracking-wide">Name</span>
-              <span>{profile.name || "—"}</span>
-            </div>
-            <div className="flex justify-between items-center py-3 border-b border-border">
-              <span className="text-muted-foreground tracking-wide">Email</span>
-              <span className="text-right break-all">{profile.email || user.email}</span>
-            </div>
-          </div>
-        )}
-
-        {activeTab === "orders" && (
-          <div>
-            {orders.length === 0 ? (
-              <p className="text-sm text-muted-foreground font-light py-10 text-center">No orders yet.</p>
+        <section>
+          {loading ? (
+            <div className="py-20 flex justify-center"><Loader2 className="w-5 h-5 animate-spin" /></div>
+          ) : tab === "orders" ? (
+            orders.length === 0 ? (
+              <EmptyState text="No orders yet" cta />
             ) : (
               <div className="space-y-4">
                 {orders.map((o) => (
-                  <div key={o.id} className="flex items-center justify-between text-sm font-light border-b border-border pb-4">
-                    <span className="text-muted-foreground">{new Date(o.created_at).toLocaleDateString()}</span>
-                    <span>${o.total}</span>
-                    <span className="text-muted-foreground uppercase text-xs tracking-widest">{o.status}</span>
+                  <div key={o.id} className="border border-border p-5">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="font-mono-ui text-[13px]">{o.order_number || o.id.slice(0, 8)}</p>
+                        <p className="editorial-heading text-muted-foreground mt-1">
+                          {o.created_at ? new Date(o.created_at).toLocaleDateString() : ""} · {o.payment_method}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-mono-ui text-[13px]">{money(Number(o.total))}</p>
+                        <p className="editorial-heading text-muted-foreground mt-1">{o.status}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t border-border">
+                      <span className="editorial-heading">
+                        Payment: <span className="text-muted-foreground">{o.payment_status}</span>
+                      </span>
+                      <span className="editorial-heading">
+                        Tracking: <span className="text-muted-foreground">{o.tracking || "Pending"}</span>
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === "offers" && (
-          <div>
-            {offers.length === 0 ? (
-              <p className="text-sm text-muted-foreground font-light py-10 text-center">No offers yet. Make an offer on any product.</p>
+            )
+          ) : tab === "wishlist" ? (
+            wishlist.length === 0 ? (
+              <EmptyState text="Your wishlist is empty" cta />
             ) : (
-              <div className="space-y-4">
-                {offers.map((o) => {
-                  const StatusIcon = statusIcons[o.status] || Clock;
-                  return (
-                    <div key={o.id} className="border border-border p-5 flex items-center justify-between cursor-pointer hover:bg-muted/50 transition-all duration-200"
-                      onClick={() => openOfferChat(o)}>
-                      <div>
-                        <p className="text-sm font-light">{(o.products as any)?.name || "Product"}</p>
-                        <p className="text-xs text-muted-foreground mt-1">Offered: ${o.offered_price.toLocaleString()}</p>
-                        {o.counter_price && <p className="text-xs text-blue-600 mt-0.5">Counter: ${o.counter_price.toLocaleString()}</p>}
-                      </div>
-                      <div className="text-right">
-                        <p className={`text-xs tracking-widest uppercase ${statusColors[o.status || "pending"]}`}>
-                          <StatusIcon className="w-3 h-3 inline mr-1" />
-                          {o.status}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">View Chat →</p>
-                      </div>
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-10">
+                {wishlist.map((w) =>
+                  w.products ? (
+                    <div key={w.id}>
+                      <Link to={productUrl(w.products)} className="block">
+                        <div className="product-frame mb-3">
+                          {w.products.product_images?.[0]?.url && (
+                            <img src={w.products.product_images[0].url} alt={w.products.name} loading="lazy" />
+                          )}
+                        </div>
+                        <p className="product-title">{w.products.name}</p>
+                        <p className="product-price">{money(Number(w.products.price))}</p>
+                      </Link>
+                      <button onClick={() => removeWish(w.id)} className="editorial-heading text-muted-foreground hover:text-foreground mt-2 mx-auto block">
+                        Remove
+                      </button>
                     </div>
-                  );
-                })}
+                  ) : null
+                )}
               </div>
-            )}
-          </div>
-        )}
+            )
+          ) : tab === "addresses" ? (
+            <div className="space-y-8">
+              {addresses.length > 0 && (
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {addresses.map((a) => (
+                    <div key={a.id} className="border border-border p-5">
+                      <p className="font-mono-ui text-[13px]">{a.label || "Address"}{a.is_default ? " · Default" : ""}</p>
+                      <p className="text-[13px] text-muted-foreground mt-2 leading-relaxed">
+                        {a.address_line1}{a.address_line2 ? `, ${a.address_line2}` : ""}<br />
+                        {a.city}{a.state ? `, ${a.state}` : ""} {a.postal_code}<br />
+                        {a.country}
+                      </p>
+                      <button onClick={() => removeAddress(a.id)} className="editorial-heading text-muted-foreground hover:text-foreground mt-4">
+                        Delete
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <form onSubmit={addAddress} className="border border-border p-5 space-y-3 max-w-xl">
+                <p className="editorial-heading mb-2">Add Address</p>
+                <input className={inputCls} placeholder="Label (Home, Work)" value={newAddr.label} onChange={(e) => setNewAddr({ ...newAddr, label: e.target.value })} />
+                <input className={inputCls} placeholder="Address line 1" required value={newAddr.address_line1} onChange={(e) => setNewAddr({ ...newAddr, address_line1: e.target.value })} />
+                <input className={inputCls} placeholder="Address line 2" value={newAddr.address_line2} onChange={(e) => setNewAddr({ ...newAddr, address_line2: e.target.value })} />
+                <div className="grid grid-cols-2 gap-3">
+                  <input className={inputCls} placeholder="City" required value={newAddr.city} onChange={(e) => setNewAddr({ ...newAddr, city: e.target.value })} />
+                  <input className={inputCls} placeholder="State" value={newAddr.state} onChange={(e) => setNewAddr({ ...newAddr, state: e.target.value })} />
+                  <input className={inputCls} placeholder="ZIP" required value={newAddr.postal_code} onChange={(e) => setNewAddr({ ...newAddr, postal_code: e.target.value })} />
+                  <input className={inputCls} placeholder="Country" required value={newAddr.country} onChange={(e) => setNewAddr({ ...newAddr, country: e.target.value })} />
+                </div>
+                <button disabled={saving} className="nav-link w-full bg-foreground text-background py-3.5 min-h-[48px] hover:opacity-80 transition-opacity">
+                  {saving ? "Saving..." : "Save Address"}
+                </button>
+              </form>
+            </div>
+          ) : (
+            <form onSubmit={saveProfile} className="max-w-xl space-y-4">
+              <div>
+                <label className="editorial-heading block mb-2">Name</label>
+                <input className={inputCls} value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} />
+              </div>
+              <div>
+                <label className="editorial-heading block mb-2">Email</label>
+                <input className={inputCls + " opacity-60"} value={profile.email} disabled />
+              </div>
+              <div>
+                <label className="editorial-heading block mb-2">Phone</label>
+                <input className={inputCls} type="tel" placeholder="+1 555 000 0000" value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} />
+              </div>
+              <button disabled={saving} className="nav-link w-full bg-foreground text-background py-3.5 min-h-[48px] hover:opacity-80 transition-opacity">
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
+            </form>
+          )}
+        </section>
       </div>
     </main>
   );
 };
+
+const EmptyState = ({ text, cta }: { text: string; cta?: boolean }) => (
+  <div className="border border-border py-20 text-center">
+    <p className="editorial-heading text-muted-foreground">{text}</p>
+    {cta && (
+      <Link to="/collection" className="nav-link inline-block mt-6 border border-foreground px-8 py-3 hover:bg-foreground hover:text-background transition-colors">
+        Shop Now
+      </Link>
+    )}
+  </div>
+);
 
 export default Account;
