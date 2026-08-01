@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { storefrontApiRequest, PRODUCTS_QUERY, type ShopifyProduct } from "@/lib/shopify";
-import { useCartStore } from "@/stores/cartStore";
-import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchProducts, type StoreProduct } from "@/lib/store";
+import ProductCard from "@/components/ProductCard";
 
 interface HeroBanner {
   id: string;
@@ -13,7 +12,13 @@ interface HeroBanner {
   link_url: string | null;
   button_text: string | null;
   display_type: string | null;
-  enabled: boolean | null;
+}
+
+interface CategoryTile {
+  id: string;
+  label: string;
+  image_url: string | null;
+  link_url: string;
 }
 
 const TICKER_ITEMS = [
@@ -21,61 +26,44 @@ const TICKER_ITEMS = [
   "NEW DROP EVERY FRIDAY",
   "NOW ACCEPTING BTC · ETH · SOL",
   "AUTHENTICITY GUARANTEED",
-  "MAKE AN OFFER ON ANY PIECE",
-];
-
-const CATEGORY_TILES = [
-  { label: "Tops", href: "/collection?filter=tops" },
-  { label: "Bottoms", href: "/collection?filter=bottoms" },
-  { label: "Accessories", href: "/collection?filter=accessories" },
-  { label: "New Arrivals", href: "/collection?filter=new" },
+  "WORLDWIDE SHIPPING",
 ];
 
 const Index = () => {
-  const [products, setProducts] = useState<ShopifyProduct[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<StoreProduct[]>([]);
+  const [newArrivals, setNewArrivals] = useState<StoreProduct[]>([]);
+  const [tiles, setTiles] = useState<CategoryTile[]>([]);
   const [hero, setHero] = useState<HeroBanner | null>(null);
-  const addItem = useCartStore(state => state.addItem);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       try {
-        const [prodData, heroData] = await Promise.all([
-          storefrontApiRequest(PRODUCTS_QUERY, { first: 12 }),
+        const [all, newest, heroRes, tilesRes] = await Promise.all([
+          fetchProducts({ limit: 12 }),
+          fetchProducts({ limit: 4, newestFirst: true }),
           supabase.from("hero_banners").select("*").eq("enabled", true).order("sort_order").limit(1).maybeSingle(),
+          supabase.from("category_tiles").select("id, label, image_url, link_url").eq("enabled", true).order("sort_order"),
         ]);
-        if (prodData?.data?.products?.edges) setProducts(prodData.data.products.edges.slice(0, 12));
-        if (heroData.data) setHero(heroData.data as any);
+        setProducts(all);
+        setNewArrivals(newest);
+        if (heroRes.data) setHero(heroRes.data as HeroBanner);
+        setTiles((tilesRes.data as CategoryTile[]) || []);
       } catch (err) {
-        console.error("Failed to fetch:", err);
+        console.error("Failed to load homepage:", err);
       }
       setLoading(false);
     })();
   }, []);
 
-  const handleQuickAdd = async (product: ShopifyProduct) => {
-    const variant = product.node.variants.edges[0]?.node;
-    if (!variant) return;
-    await addItem({
-      product,
-      variantId: variant.id,
-      variantTitle: variant.title,
-      price: variant.price,
-      quantity: 1,
-      selectedOptions: variant.selectedOptions || [],
-    });
-    toast.success("Added to bag");
-  };
-
   return (
     <main>
-      {/* Optional hero image */}
       {hero?.display_type === "image" && hero.image_url && (
         <section className="relative w-full h-[70vh] overflow-hidden">
-          <img src={hero.image_url} alt={hero.title || ""} className="w-full h-full object-cover" />
+          <img src={hero.image_url} alt={hero.title || "FLTHYMRKT"} className="w-full h-full object-cover" />
           {(hero.title || hero.button_text) && (
             <div className="absolute inset-0 flex flex-col items-center justify-end pb-16 bg-black/10">
-              {hero.title && <h1 className="font-akira text-[7vw] text-white drop-shadow-lg">{hero.title}</h1>}
+              {hero.title && <h1 className="font-display text-[7vw] text-white drop-shadow-lg">{hero.title}</h1>}
               {hero.button_text && (
                 <Link to={hero.link_url || "/collection"} className="mt-6 nav-link px-8 py-3.5 border border-white text-white hover:bg-white hover:text-black transition-colors">
                   {hero.button_text}
@@ -86,10 +74,10 @@ const Index = () => {
         </section>
       )}
 
-      {/* Marquee */}
+      {/* Ticker */}
       <section className="marquee-wrap border-b border-border py-3">
         <div className="marquee marquee-fast">
-          {[0, 1].map(i => (
+          {[0, 1].map((i) => (
             <div key={i} className="marquee-track" aria-hidden={i === 1}>
               {TICKER_ITEMS.concat(TICKER_ITEMS).map((item, j) => (
                 <span key={j} className="font-mono-ui text-[12px] px-6">
@@ -101,45 +89,48 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Featured collection — EYEZY 3-col grid, centered names, no brand label */}
+      {/* Category tiles */}
+      {tiles.length > 0 && (
+        <section className="max-w-[1600px] mx-auto px-6 md:px-10 pt-14">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {tiles.map((t) => (
+              <Link key={t.id} to={t.link_url} className="group block border border-border hover-gray">
+                {t.image_url && (
+                  <div className="product-frame">
+                    <img src={t.image_url} alt={t.label} loading="lazy" />
+                  </div>
+                )}
+                <p className="section-title py-4">{t.label}</p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* New arrivals — max 4 */}
+      {newArrivals.length > 0 && (
+        <section className="max-w-[1600px] mx-auto px-6 md:px-10 pt-16">
+          <h2 className="section-title mb-10">New Arrivals</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-12">
+            {newArrivals.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Featured grid */}
       <section className="max-w-[1600px] mx-auto px-6 md:px-10 py-16">
+        <h2 className="section-title mb-10">Shop</h2>
         {loading ? (
           <div className="text-center py-20 editorial-heading text-muted-foreground">Loading...</div>
         ) : products.length === 0 ? (
           <div className="text-center py-20 editorial-heading text-muted-foreground">No products yet</div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-16">
-            {products.map((product) => {
-              const img = product.node.images.edges[0]?.node;
-              const hoverImg = product.node.images.edges[1]?.node;
-              const price = product.node.priceRange.minVariantPrice;
-              return (
-                <Link key={product.node.id} to={`/product/${product.node.handle}`} className="block group">
-                  <div className="product-frame mb-5">
-                    {img && (
-                      <img
-                        src={img.url}
-                        alt={img.altText || product.node.title}
-                        className={hoverImg ? 'group-hover:opacity-0' : ''}
-                        loading="lazy"
-                      />
-                    )}
-                    {hoverImg && (
-                      <img
-                        src={hoverImg.url}
-                        alt={product.node.title}
-                        className="absolute inset-0 m-auto opacity-0 group-hover:opacity-100"
-                        loading="lazy"
-                      />
-                    )}
-                  </div>
-                  <p className="product-title max-w-[75%] mx-auto pb-1">{product.node.title}</p>
-                  <p className="product-price">
-                    ${parseFloat(price.amount).toLocaleString(undefined, { minimumFractionDigits: 0 })}
-                  </p>
-                </Link>
-              );
-            })}
+            {products.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
           </div>
         )}
 
