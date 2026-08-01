@@ -12,6 +12,7 @@ import ProductPage from "./pages/ProductPage";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import Account from "./pages/Account";
+import Checkout from "./pages/Checkout";
 import Help from "./pages/Help";
 import BrandsPage from "./pages/Brands";
 import NotFound from "./pages/NotFound";
@@ -50,6 +51,7 @@ const AppContent = () => {
       <Route path="/product/:id" element={<Layout><ProductPage /></Layout>} />
       <Route path="/auth" element={<Layout><Auth /></Layout>} />
       <Route path="/reset-password" element={<Layout><ResetPassword /></Layout>} />
+      <Route path="/checkout" element={<Layout><Checkout /></Layout>} />
       <Route path="/account" element={<Layout><Account /></Layout>} />
       <Route path="/help" element={<Layout><Help /></Layout>} />
       <Route path="/brands" element={<Layout><BrandsPage /></Layout>} />

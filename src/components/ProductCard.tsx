@@ -1,68 +1,73 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
+import {
+  finalPrice,
+  isDiscountActive,
+  money,
+  primaryImage,
+  productUrl,
+  secondaryImage,
+  totalStock,
+  type StoreProduct,
+} from "@/lib/store";
+import { useCartStore } from "@/stores/cartStore";
 
 interface ProductCardProps {
-  id: string;
-  name: string;
-  brand: string;
-  price: number;
-  image: string;
-  hoverImage?: string;
-  discount_enabled?: boolean;
-  discount_type?: string;
-  discount_value?: number;
-  discount_start?: string | null;
-  discount_end?: string | null;
-  is_flash_sale?: boolean;
-  soldOut?: boolean;
-  onQuickAdd?: () => void;
+  product: StoreProduct;
+  showQuickAdd?: boolean;
 }
 
-const calcFinalPrice = (price: number, type?: string, value?: number) => {
-  if (!type || !value) return price;
-  if (type === "percentage") return Math.round((price - price * value / 100) * 100) / 100;
-  if (type === "fixed") return Math.max(0, Math.round((price - value) * 100) / 100);
-  if (type === "override") return Math.round(value * 100) / 100;
-  return price;
-};
-
-const isDiscountActive = (enabled?: boolean, start?: string | null, end?: string | null) => {
-  if (!enabled) return false;
-  const now = Date.now();
-  if (start && new Date(start).getTime() > now) return false;
-  if (end && new Date(end).getTime() < now) return false;
-  return true;
-};
-
-const ProductCard = ({
-  id, name, price, image, hoverImage,
-  discount_enabled, discount_type, discount_value, discount_start, discount_end,
-  soldOut,
-}: ProductCardProps) => {
+const ProductCard = ({ product, showQuickAdd = true }: ProductCardProps) => {
   const [hovered, setHovered] = useState(false);
+  const addItem = useCartStore((s) => s.addItem);
 
-  const active = isDiscountActive(discount_enabled, discount_start, discount_end);
-  const finalPrice = active ? calcFinalPrice(price, discount_type, discount_value) : price;
+  const image = primaryImage(product);
+  const hoverImage = secondaryImage(product);
+  const active = isDiscountActive(product);
+  const price = finalPrice(product);
+  const stock = totalStock(product);
+  const soldOut = product.sold_out || stock <= 0;
+  const singleVariant = product.product_variants.length <= 1;
+
+  const quickAdd = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const variant = product.product_variants[0];
+    const result = addItem({
+      productId: product.id,
+      slug: product.slug,
+      name: product.name,
+      image,
+      size: variant?.size ?? null,
+      variantId: variant?.id ?? null,
+      price,
+      maxQuantity: variant ? variant.quantity : stock,
+    });
+    result.ok ? toast.success(result.message) : toast.error(result.message);
+  };
 
   return (
     <Link
-      to={`/product/${id}`}
+      to={productUrl(product)}
       className="block group"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
       <div className="product-frame mb-5">
-        <img
-          src={image}
-          alt={name}
-          className={hovered && hoverImage ? 'opacity-0 absolute inset-0 m-auto' : 'opacity-100'}
-          loading="lazy"
-        />
+        {image && (
+          <img
+            src={image}
+            alt={product.name}
+            className={hovered && hoverImage ? "opacity-0" : "opacity-100"}
+            loading="lazy"
+          />
+        )}
         {hoverImage && (
           <img
             src={hoverImage}
-            alt={name}
-            className={`absolute inset-0 m-auto ${hovered ? 'opacity-100' : 'opacity-0'}`}
+            alt={product.name}
+            className={`absolute inset-0 m-auto ${hovered ? "opacity-100" : "opacity-0"}`}
             loading="lazy"
           />
         )}
@@ -72,16 +77,25 @@ const ProductCard = ({
             <span className="font-mono-ui text-[11px] px-3 py-1 bg-foreground text-background">SOLD OUT</span>
           </div>
         )}
+
+        {!soldOut && showQuickAdd && singleVariant && (
+          <button
+            onClick={quickAdd}
+            className="absolute inset-x-3 bottom-3 nav-link text-[12px] py-2.5 bg-background border border-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:bg-foreground hover:text-background"
+          >
+            Quick Add
+          </button>
+        )}
       </div>
 
-      <p className="product-title max-w-[75%] mx-auto pb-1">{name}</p>
-      {active && finalPrice < price ? (
+      <p className="product-title max-w-[80%] mx-auto pb-1">{product.name}</p>
+      {active && price < product.price ? (
         <p className="product-price">
-          <span className="line-through opacity-50 mr-2">${price.toLocaleString()}</span>
-          <span style={{ color: 'hsl(var(--sale))' }}>${finalPrice.toLocaleString()}</span>
+          <span className="line-through opacity-50 mr-2">{money(product.price)}</span>
+          <span style={{ color: "hsl(var(--sale))" }}>{money(price)}</span>
         </p>
       ) : (
-        <p className="product-price">${price.toLocaleString()}</p>
+        <p className="product-price">{money(product.price)}</p>
       )}
     </Link>
   );
