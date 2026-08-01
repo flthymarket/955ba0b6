@@ -19,10 +19,8 @@ import Dashboard from "./pages/admin/Dashboard";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AdminBrands from "./pages/admin/AdminBrands";
 import AdminDiscounts from "./pages/admin/AdminDiscounts";
-import AdminOffers from "./pages/admin/AdminOffers";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminUsers from "./pages/admin/AdminUsers";
-import AdminNewsletter from "./pages/admin/AdminNewsletter";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminHero from "./pages/admin/AdminHero";
 import AdminAnnouncements from "./pages/admin/AdminAnnouncements";
@@ -39,10 +37,8 @@ const AppContent = () => {
       <Route path="/admin/products" element={<AdminProducts />} />
       <Route path="/admin/brands" element={<AdminBrands />} />
       <Route path="/admin/discounts" element={<AdminDiscounts />} />
-      <Route path="/admin/offers" element={<AdminOffers />} />
       <Route path="/admin/orders" element={<AdminOrders />} />
       <Route path="/admin/users" element={<AdminUsers />} />
-      <Route path="/admin/newsletter" element={<AdminNewsletter />} />
       <Route path="/admin/settings" element={<AdminSettings />} />
       <Route path="/admin/hero" element={<AdminHero />} />
       <Route path="/admin/announcements" element={<AdminAnnouncements />} />

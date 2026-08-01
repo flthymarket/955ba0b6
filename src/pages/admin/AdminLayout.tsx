@@ -3,8 +3,8 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Menu, X } from "lucide-react";
 import {
-  LayoutDashboard, Package, Tags, MessageSquare,
-  ShoppingCart, Users, Mail, Settings, Percent, Megaphone, Star,
+  LayoutDashboard, Package, Tags,
+  ShoppingCart, Users, Settings, Percent, Megaphone, Star, FileText, Grid3X3,
 } from "lucide-react";
 
 const navItems = [
@@ -15,10 +15,10 @@ const navItems = [
   { label: "Announcements", icon: Megaphone, href: "/admin/announcements" },
   { label: "Hero Banner", icon: Megaphone, href: "/admin/hero" },
   { label: "Discounts", icon: Percent, href: "/admin/discounts" },
-  { label: "Offers", icon: MessageSquare, href: "/admin/offers" },
   { label: "Orders", icon: ShoppingCart, href: "/admin/orders" },
   { label: "Users", icon: Users, href: "/admin/users" },
-  { label: "Newsletter", icon: Mail, href: "/admin/newsletter" },
+  { label: "Category Tiles", icon: Grid3X3, href: "/admin/tiles" },
+  { label: "About Page", icon: FileText, href: "/admin/content" },
   { label: "Settings", icon: Settings, href: "/admin/settings" },
 ];
 
@@ -49,7 +49,7 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
           <Link to="/" className="text-xs tracking-[0.2em] uppercase font-light text-muted-foreground hover:text-foreground transition-colors duration-150">
             ← Back to Store
           </Link>
-          <h2 className="text-sm tracking-[0.25em] uppercase font-light mt-3">Admin</h2>
+          <h2 className="text-sm tracking-[0.25em] uppercase font-light mt-3">Staff</h2>
         </div>
         <nav className="flex-1 py-4 overflow-y-auto">
           {navItems.map((item) => {
@@ -74,7 +74,7 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
         <button onClick={() => setMobileNavOpen(!mobileNavOpen)}>
           {mobileNavOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
-        <span className="text-sm tracking-[0.2em] uppercase font-light mx-auto">Admin</span>
+        <span className="text-sm tracking-[0.2em] uppercase font-light mx-auto">Staff</span>
       </div>
 
       {mobileNavOpen && (
@@ -83,7 +83,7 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
           <aside className="fixed top-0 left-0 bottom-0 w-[80%] max-w-[320px] bg-background z-50 lg:hidden animate-slide-in-right flex flex-col">
             <div className="p-6 border-b border-border">
               <Link to="/" className="text-xs tracking-[0.2em] uppercase font-light text-muted-foreground">← Back to Store</Link>
-              <h2 className="text-sm tracking-[0.25em] uppercase font-light mt-3">Admin</h2>
+              <h2 className="text-sm tracking-[0.25em] uppercase font-light mt-3">Staff</h2>
             </div>
             <nav className="flex-1 py-4 overflow-y-auto">
               {navItems.map((item) => {

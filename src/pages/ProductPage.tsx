@@ -5,7 +5,6 @@ import { storefrontApiRequest, PRODUCT_BY_HANDLE_QUERY, PRODUCTS_QUERY, type Sho
 import { useCartStore } from "@/stores/cartStore";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import OfferModal from "@/components/OfferModal";
 
 const ProductPage = () => {
   const { id: handle } = useParams();
@@ -18,7 +17,6 @@ const ProductPage = () => {
   const [loading, setLoading] = useState(true);
   const [shippingOpen, setShippingOpen] = useState(false);
   const [returnsOpen, setReturnsOpen] = useState(false);
-  const [offerOpen, setOfferOpen] = useState(false);
   const addItem = useCartStore((state) => state.addItem);
   const cartLoading = useCartStore((state) => state.isLoading);
   const getCheckoutUrl = useCartStore((state) => state.getCheckoutUrl);
@@ -126,8 +124,6 @@ const ProductPage = () => {
     }
   };
 
-  // Extract Shopify numeric ID from GID for offers (store full GID as text)
-  const shopifyProductId = product.id;
 
   return (
     <main className="pt-8 sm:pt-12 md:pt-16 pb-20 md:pb-24 animate-fade-in">
@@ -240,13 +236,6 @@ const ProductPage = () => {
                 className="w-full border-2 border-foreground py-4 text-sm sm:text-base tracking-[0.15em] uppercase font-light hover:bg-foreground hover:text-background transition-all duration-300 min-h-[52px] disabled:opacity-50">
                 
                 Buy Now
-              </button>
-              {/* Make an Offer */}
-              <button
-                onClick={() => setOfferOpen(true)}
-                className="w-full border border-border py-4 text-sm tracking-[0.15em] uppercase font-light hover:border-foreground transition-all duration-300 min-h-[52px] text-muted-foreground hover:text-foreground">
-                
-                Make an Offer
               </button>
             </div>
 
@@ -372,13 +361,6 @@ const ProductPage = () => {
         </div>
       </div>
 
-      <OfferModal
-        isOpen={offerOpen}
-        onClose={() => setOfferOpen(false)}
-        productId={shopifyProductId}
-        productName={product.title}
-        productPrice={parseFloat(price.amount)} />
-      
     </main>);
 
 };
