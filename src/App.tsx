@@ -51,6 +51,7 @@ const AppContent = () => {
       <Route path="/collection" element={<Layout><Collection /></Layout>} />
       <Route path="/product/:id" element={<Layout><ProductPage /></Layout>} />
       <Route path="/auth" element={<Layout><Auth /></Layout>} />
+      <Route path="/staff" element={<Layout><StaffLogin /></Layout>} />
       <Route path="/reset-password" element={<Layout><ResetPassword /></Layout>} />
       <Route path="/checkout" element={<Layout><Checkout /></Layout>} />
       <Route path="/account" element={<Layout><Account /></Layout>} />
