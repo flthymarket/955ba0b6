@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import Collection from "./pages/Collection";
 import ProductPage from "./pages/ProductPage";
 import Auth from "./pages/Auth";
+import StaffLogin from "./pages/StaffLogin";
 import ResetPassword from "./pages/ResetPassword";
 import Account from "./pages/Account";
 import Checkout from "./pages/Checkout";
