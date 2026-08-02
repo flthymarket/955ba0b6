@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef, useMemo } from "react";
-import { useSearchParams, Link } from "react-router-dom";
-import { ChevronDown, Bookmark } from "lucide-react";
-import { storefrontApiRequest, PRODUCTS_QUERY, type ShopifyProduct } from "@/lib/shopify";
-import { useCartStore } from "@/stores/cartStore";
+import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
+import { ChevronDown } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { fetchProducts, fetchNewestIds, finalPrice, type StoreProduct } from "@/lib/store";
+import ProductCard from "@/components/ProductCard";
 
-const sortOptions = ["Featured", "Price: Low to High", "Price: High to Low"];
+const sortOptions = ["Featured", "Newest", "Price: Low to High", "Price: High to Low"];
+
 const categoryFilters = [
   { label: "All", value: "all" },
   { label: "New Arrivals", value: "new" },
@@ -12,172 +14,159 @@ const categoryFilters = [
   { label: "Bottoms", value: "bottoms" },
   { label: "Bags", value: "bags" },
   { label: "Jewelry", value: "jewelry" },
-  { label: "Dresses", value: "dresses" },
   { label: "Accessories", value: "accessories" },
 ];
-
-// Auto-detect colors from product data
-const KNOWN_COLORS = ["black", "white", "blue", "red", "green", "brown", "gray", "grey", "pink", "navy", "beige", "cream", "tan", "orange", "yellow", "purple", "burgundy", "olive", "khaki", "gold", "silver", "maroon", "coral", "teal"];
-
-function extractColors(products: ShopifyProduct[]): string[] {
-  const found = new Set<string>();
-  products.forEach((p) => {
-    const text = `${p.node.title} ${p.node.description}`.toLowerCase();
-    // Check options (e.g. Color option)
-    p.node.options?.forEach((opt) => {
-      if (opt.name.toLowerCase() === "color" || opt.name.toLowerCase() === "colour") {
-        opt.values.forEach((v) => found.add(v.trim()));
-      }
-    });
-    // Fallback: scan text for known colors
-    KNOWN_COLORS.forEach((c) => {
-      if (text.includes(c)) found.add(c === "grey" ? "gray" : c);
-    });
-  });
-  return Array.from(found).sort().map((c) => c.charAt(0).toUpperCase() + c.slice(1));
-}
-
-function extractBrands(products: ShopifyProduct[]): string[] {
-  const brands = new Set<string>();
-  products.forEach((p) => {
-    const vendor = p.node.vendor?.trim();
-    if (vendor && vendor.toLowerCase() !== "flthymrkt") brands.add(vendor);
-  });
-  return Array.from(brands).sort();
-}
 
 const Collection = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const filter = searchParams.get("filter") || "all";
   const brandParam = searchParams.get("brand") || "";
-  const [sortOpen, setSortOpen] = useState(false);
-  const [categoryOpen, setCategoryOpen] = useState(true);
-  const [colorOpen, setColorOpen] = useState(false);
-  const [brandOpen, setBrandOpen] = useState(false);
-  const [currentSort, setCurrentSort] = useState("Featured");
-  const [allProducts, setAllProducts] = useState<ShopifyProduct[]>([]);
+
+  const [products, setProducts] = useState<StoreProduct[]>([]);
+  const [newIds, setNewIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedColors, setSelectedColors] = useState<string[]>([]);
+  const [sortOpen, setSortOpen] = useState(false);
+  const [currentSort, setCurrentSort] = useState("Featured");
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
-  const gridRef = useRef<HTMLDivElement>(null);
-  const [gridVisible, setGridVisible] = useState(false);
+  const [selectedColors, setSelectedColors] = useState<string[]>([]);
+  const [openPanel, setOpenPanel] = useState<"category" | "brand" | "color" | null>("category");
 
-  // Auto-detect available colors and brands
-  const availableColors = useMemo(() => extractColors(allProducts), [allProducts]);
-  const availableBrands = useMemo(() => extractBrands(allProducts), [allProducts]);
-
-  // Apply brand from URL param
   useEffect(() => {
     if (brandParam) {
       setSelectedBrands([brandParam]);
-      setBrandOpen(true);
+      setOpenPanel("brand");
     }
   }, [brandParam]);
 
   useEffect(() => {
-    if (!gridRef.current) return;
-    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setGridVisible(true); obs.disconnect(); } }, { threshold: 0.05 });
-    obs.observe(gridRef.current);
-    return () => obs.disconnect();
-  }, [allProducts, selectedColors, selectedBrands]);
-
-  useEffect(() => {
-    const fetchProducts = async () => {
+    (async () => {
       setLoading(true);
-      setGridVisible(false);
       try {
-        let queryFilter: string | undefined;
-        if (filter && filter !== "new" && filter !== "all") {
-          const capitalizedFilter = filter.charAt(0).toUpperCase() + filter.slice(1);
-          queryFilter = `product_type:${capitalizedFilter}`;
-        }
-        const data = await storefrontApiRequest(PRODUCTS_QUERY, { first: 50, query: queryFilter });
-        if (data?.data?.products?.edges) {
-          setAllProducts(data.data.products.edges as ShopifyProduct[]);
-        }
+        const [all, newest] = await Promise.all([fetchProducts({}), fetchNewestIds(5)]);
+        setProducts(all);
+        setNewIds(newest);
       } catch (err) {
-        console.error("Failed to fetch products:", err);
+        console.error("Failed to load products:", err);
       }
       setLoading(false);
-    };
-    fetchProducts();
-  }, [filter]);
+    })();
+  }, []);
 
-  // Filter and sort products
-  const filteredProducts = useMemo(() => {
-    let items = [...allProducts];
+  const availableBrands = useMemo(
+    () =>
+      Array.from(new Set(products.map((p) => p.brands?.name?.trim()).filter((b): b is string => !!b))).sort(),
+    [products]
+  );
 
-    // Filter by selected colors
-    if (selectedColors.length > 0) {
-      items = items.filter((p) => {
-        const text = `${p.node.title} ${p.node.description}`.toLowerCase();
-        const optionColors = p.node.options
-          ?.filter((o) => o.name.toLowerCase() === "color" || o.name.toLowerCase() === "colour")
-          .flatMap((o) => o.values.map((v) => v.toLowerCase())) || [];
-        return selectedColors.some((c) => text.includes(c.toLowerCase()) || optionColors.includes(c.toLowerCase()));
-      });
+  const availableColors = useMemo(
+    () =>
+      Array.from(new Set(products.map((p) => p.color?.trim()).filter((c): c is string => !!c))).sort(),
+    [products]
+  );
+
+  const visible = useMemo(() => {
+    let items = [...products];
+
+    if (filter === "new") {
+      items = items
+        .slice()
+        .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+        .slice(0, 10);
+    } else if (filter !== "all") {
+      items = items.filter((p) => p.category?.toLowerCase() === filter.toLowerCase());
     }
 
-    // Filter by selected brands
-    if (selectedBrands.length > 0) {
+    if (selectedBrands.length) {
       items = items.filter((p) =>
-        selectedBrands.some((b) => p.node.vendor?.toLowerCase() === b.toLowerCase())
+        selectedBrands.some((b) => p.brands?.name?.toLowerCase() === b.toLowerCase())
+      );
+    }
+    if (selectedColors.length) {
+      items = items.filter((p) =>
+        selectedColors.some((c) => p.color?.toLowerCase() === c.toLowerCase())
       );
     }
 
-    // Sort
-    if (currentSort === "Price: Low to High") {
-      items.sort((a, b) => parseFloat(a.node.priceRange.minVariantPrice.amount) - parseFloat(b.node.priceRange.minVariantPrice.amount));
-    } else if (currentSort === "Price: High to Low") {
-      items.sort((a, b) => parseFloat(b.node.priceRange.minVariantPrice.amount) - parseFloat(a.node.priceRange.minVariantPrice.amount));
-    }
+    if (currentSort === "Price: Low to High") items.sort((a, b) => finalPrice(a) - finalPrice(b));
+    else if (currentSort === "Price: High to Low") items.sort((a, b) => finalPrice(b) - finalPrice(a));
+    else if (currentSort === "Newest")
+      items.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
 
     return items;
-  }, [allProducts, selectedColors, selectedBrands, currentSort]);
+  }, [products, filter, selectedBrands, selectedColors, currentSort]);
 
-  const pageTitle = filter && filter !== "all"
-    ? filter === "new" ? "New Arrivals" : filter.charAt(0).toUpperCase() + filter.slice(1)
-    : "All";
+  const pageTitle =
+    filter === "all" ? "Shop All" : filter === "new" ? "New Arrivals" : filter.charAt(0).toUpperCase() + filter.slice(1);
 
-  const FilterCheckbox = ({ checked, label, onClick }: { checked: boolean; label: string; onClick: () => void }) => (
-    <button onClick={onClick}
-      className={`flex items-center gap-2 w-full text-left py-1.5 text-sm font-light transition-all ${checked ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-      <span className={`w-4 h-4 border flex items-center justify-center transition-colors ${checked ? "border-foreground bg-foreground" : "border-border"}`}>
-        {checked && <span className="text-background text-[10px]">✓</span>}
+  const Checkbox = ({ checked, label, onClick }: { checked: boolean; label: string; onClick: () => void }) => (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-2.5 w-full text-left py-1.5 text-[13px] transition-colors ${
+        checked ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      <span
+        className={`w-[14px] h-[14px] border flex items-center justify-center flex-shrink-0 ${
+          checked ? "border-foreground bg-foreground" : "border-border"
+        }`}
+      >
+        {checked && <span className="text-background text-[9px] leading-none">✓</span>}
       </span>
       {label}
     </button>
   );
 
-  const FilterSection = ({ title, open, onToggle, children }: { title: string; open: boolean; onToggle: () => void; children: React.ReactNode }) => (
-    <div className="mb-6">
-      <button onClick={onToggle} className="flex items-center justify-between w-full text-sm tracking-[0.1em] uppercase font-light border-b border-foreground pb-2 mb-3">
-        {title} <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${open ? "rotate-180" : ""}`} />
-      </button>
-      <div className={`grid transition-all duration-300 ease-out ${open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
-        <div className="overflow-hidden">
-          <div className="space-y-1">{children}</div>
-        </div>
+  const Panel = ({
+    title,
+    id,
+    children,
+  }: {
+    title: string;
+    id: "category" | "brand" | "color";
+    children: React.ReactNode;
+  }) => {
+    const open = openPanel === id;
+    return (
+      <div className="border-b border-border pb-3 mb-4">
+        <button
+          onClick={() => setOpenPanel(open ? null : id)}
+          className="flex items-center justify-between w-full editorial-heading text-[10px] py-1"
+        >
+          {title}
+          <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+        </button>
+        {open && <div className="pt-2">{children}</div>}
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
-    <main className="pt-6 sm:pt-8 md:pt-12 pb-20 animate-fade-in">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8">
-        <div className="flex items-baseline justify-between mb-6 sm:mb-8 md:mb-10">
-          <h1 className="text-lg sm:text-xl md:text-2xl tracking-[0.25em] font-extralight uppercase">
-            {pageTitle} <span className="text-muted-foreground text-sm font-light">({filteredProducts.length})</span>
+    <main className="pt-8 md:pt-10 pb-24 animate-fade-in">
+      <div className="max-w-[1500px] mx-auto px-5 md:px-8">
+        <div className="flex items-baseline justify-between mb-8">
+          <h1 className="section-title !text-left">
+            {pageTitle} <span className="text-muted-foreground">({visible.length})</span>
           </h1>
           <div className="relative">
-            <button onClick={() => setSortOpen(!sortOpen)} className="text-sm tracking-[0.1em] uppercase font-light flex items-center gap-2 hover-gray px-2 py-1 transition-all">
-              Sort by: {currentSort} <ChevronDown className="w-3 h-3" />
+            <button
+              onClick={() => setSortOpen(!sortOpen)}
+              className="editorial-heading text-[10px] flex items-center gap-2"
+            >
+              Sort: {currentSort} <ChevronDown className="w-3 h-3" />
             </button>
             {sortOpen && (
-              <div className="absolute right-0 top-full mt-2 bg-background border border-border py-3 px-5 min-w-[220px] z-10 animate-fade-in">
+              <div className="absolute right-0 top-full mt-2 bg-background border border-border py-2 min-w-[200px] z-20 animate-fade-in">
                 {sortOptions.map((opt) => (
-                  <button key={opt} onClick={() => { setCurrentSort(opt); setSortOpen(false); }}
-                    className={`block w-full text-left py-2.5 text-sm tracking-[0.1em] uppercase font-light transition-all hover-gray px-2 -mx-2 min-h-[40px] ${currentSort === opt ? "opacity-100" : "opacity-50 hover:opacity-80"}`}>
+                  <button
+                    key={opt}
+                    onClick={() => {
+                      setCurrentSort(opt);
+                      setSortOpen(false);
+                    }}
+                    className={`block w-full text-left px-4 py-2.5 text-[13px] hover-gray ${
+                      currentSort === opt ? "" : "text-muted-foreground"
+                    }`}
+                  >
                     {opt}
                   </button>
                 ))}
@@ -186,115 +175,80 @@ const Collection = () => {
           </div>
         </div>
 
-        <div className="flex gap-8">
-          {/* Left sidebar filters - desktop only */}
-          <aside className="hidden lg:block w-[200px] flex-shrink-0">
-            <div className="sticky top-32">
-              <FilterSection title="Category" open={categoryOpen} onToggle={() => setCategoryOpen(!categoryOpen)}>
-                {categoryFilters.map((cat) => (
-                  <FilterCheckbox key={cat.value} label={cat.label} checked={filter === cat.value}
-                    onClick={() => setSearchParams(cat.value === "all" ? {} : { filter: cat.value })} />
+        <div className="flex gap-10">
+          <aside className="hidden lg:block w-[180px] flex-shrink-0">
+            <div className="sticky top-28">
+              <Panel title="Category" id="category">
+                {categoryFilters.map((c) => (
+                  <Checkbox
+                    key={c.value}
+                    label={c.label}
+                    checked={filter === c.value}
+                    onClick={() => setSearchParams(c.value === "all" ? {} : { filter: c.value })}
+                  />
                 ))}
-              </FilterSection>
+              </Panel>
 
               {availableBrands.length > 0 && (
-                <FilterSection title="Designer" open={brandOpen} onToggle={() => setBrandOpen(!brandOpen)}>
-                  {availableBrands.map((brand) => (
-                    <FilterCheckbox key={brand} label={brand} checked={selectedBrands.includes(brand)}
-                      onClick={() => setSelectedBrands((prev) =>
-                        prev.includes(brand) ? prev.filter((b) => b !== brand) : [...prev, brand]
-                      )} />
+                <Panel title="Brand" id="brand">
+                  {availableBrands.map((b) => (
+                    <Checkbox
+                      key={b}
+                      label={b}
+                      checked={selectedBrands.includes(b)}
+                      onClick={() =>
+                        setSelectedBrands((prev) =>
+                          prev.includes(b) ? prev.filter((x) => x !== b) : [...prev, b]
+                        )
+                      }
+                    />
                   ))}
-                </FilterSection>
+                </Panel>
               )}
 
               {availableColors.length > 0 && (
-                <FilterSection title="Color" open={colorOpen} onToggle={() => setColorOpen(!colorOpen)}>
-                  {availableColors.map((color) => (
-                    <FilterCheckbox key={color} label={color} checked={selectedColors.includes(color)}
-                      onClick={() => setSelectedColors((prev) =>
-                        prev.includes(color) ? prev.filter((c) => c !== color) : [...prev, color]
-                      )} />
+                <Panel title="Color" id="color">
+                  {availableColors.map((c) => (
+                    <Checkbox
+                      key={c}
+                      label={c}
+                      checked={selectedColors.includes(c)}
+                      onClick={() =>
+                        setSelectedColors((prev) =>
+                          prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]
+                        )
+                      }
+                    />
                   ))}
-                </FilterSection>
+                </Panel>
               )}
             </div>
           </aside>
 
-          {/* Mobile filter bar */}
-          <div className="lg:hidden w-full mb-4">
-            <div className="flex items-center gap-4 overflow-x-auto pb-2 -mx-4 px-4">
-              {categoryFilters.map((cat) => (
-                <button key={cat.value}
-                  onClick={() => setSearchParams(cat.value === "all" ? {} : { filter: cat.value })}
-                  className={`text-xs tracking-[0.1em] uppercase font-light whitespace-nowrap px-3 py-2 border transition-all min-h-[36px] ${
-                    filter === cat.value ? "bg-foreground text-background border-foreground" : "border-border hover:border-foreground"
-                  }`}>
-                  {cat.label}
+          <div className="flex-1 min-w-0">
+            <div className="lg:hidden flex items-center gap-2 overflow-x-auto pb-4 -mx-5 px-5">
+              {categoryFilters.map((c) => (
+                <button
+                  key={c.value}
+                  onClick={() => setSearchParams(c.value === "all" ? {} : { filter: c.value })}
+                  className={`editorial-heading text-[10px] whitespace-nowrap px-3 py-2 border min-h-[40px] ${
+                    filter === c.value ? "bg-foreground text-background border-foreground" : "border-border"
+                  }`}
+                >
+                  {c.label}
                 </button>
               ))}
             </div>
-          </div>
 
-          {/* Product grid */}
-          <div className="flex-1 min-w-0">
             {loading ? (
-              <div className="text-center py-20">
-                <p className="text-muted-foreground text-sm tracking-widest uppercase">Loading...</p>
-              </div>
-            ) : filteredProducts.length === 0 ? (
-              <p className="text-center py-20 text-muted-foreground text-sm tracking-widest uppercase">No products found</p>
+              <p className="editorial-heading text-center text-muted-foreground py-24">Loading...</p>
+            ) : visible.length === 0 ? (
+              <p className="editorial-heading text-center text-muted-foreground py-24">No products found</p>
             ) : (
-              <div ref={gridRef} className="grid gap-x-8 gap-y-12 sm:gap-x-10 sm:gap-y-14 md:gap-x-12 md:gap-y-16 grid-cols-2 lg:grid-cols-3">
-                {filteredProducts.map((product, i) => {
-                  const img = product.node.images.edges[0]?.node;
-                  const hoverImg = product.node.images.edges[1]?.node;
-                  const price = product.node.priceRange.minVariantPrice;
-                  return (
-                    <div key={product.node.id} className="group"
-                      style={{
-                        transitionDelay: `${i * 60}ms`,
-                        opacity: gridVisible ? 1 : 0,
-                        transform: gridVisible ? 'translateY(0)' : 'translateY(20px)',
-                        transition: 'all 0.6s ease-out',
-                      }}>
-                      <Link to={`/product/${product.node.handle}`} className="block">
-                        <div className="product-frame mb-3">
-                          {img ? (
-                            <>
-                              <img
-                                src={img.url}
-                                alt={img.altText || product.node.title}
-                                className={`absolute inset-0 ${hoverImg ? 'group-hover:opacity-0' : ''}`}
-                                loading="lazy"
-                              />
-                              {hoverImg && (
-                                <img
-                                  src={hoverImg.url}
-                                  alt={img.altText || product.node.title}
-                                  className="absolute inset-0 opacity-0 group-hover:opacity-100"
-                                  loading="lazy"
-                                />
-                              )}
-                            </>
-                          ) : (
-                            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">No Image</div>
-                          )}
-                          <button className="absolute top-3 right-3 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                            <Bookmark className="w-4 h-4 text-foreground" />
-                          </button>
-                        </div>
-                        <div className="px-0.5 pb-2">
-                          <p className="editorial-heading text-muted-foreground mb-1">{product.node.vendor || "FLTHYMRKT"}</p>
-                          <p className="product-title mb-1.5">{product.node.title}</p>
-                          <p className="product-price">
-                            ${parseFloat(price.amount).toLocaleString(undefined, { minimumFractionDigits: 0 })}
-                          </p>
-                        </div>
-                      </Link>
-                    </div>
-                  );
-                })}
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-12">
+                {visible.map((p) => (
+                  <ProductCard key={p.id} product={p} isNew={newIds.includes(p.id)} />
+                ))}
               </div>
             )}
           </div>
