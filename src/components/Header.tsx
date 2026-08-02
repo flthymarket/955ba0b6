@@ -8,19 +8,23 @@ import CartDrawer from "./CartDrawer";
 import AnnouncementBanner from "./AnnouncementBanner";
 import { useCartStore } from "@/stores/cartStore";
 
-const navLinks = [
-  { label: "Shop", href: "/collection" },
-  { label: "New", href: "/collection?filter=new" },
+const categoryLinks = [
+  { label: "Shop All", href: "/collection" },
+  { label: "New Arrivals", href: "/collection?filter=new" },
   { label: "Tops", href: "/collection?filter=tops" },
   { label: "Bottoms", href: "/collection?filter=bottoms" },
+  { label: "Bags", href: "/collection?filter=bags" },
+  { label: "Jewelry", href: "/collection?filter=jewelry" },
   { label: "Accessories", href: "/collection?filter=accessories" },
   { label: "Brands", href: "/brands" },
+  { label: "About", href: "/help#about" },
+  { label: "FAQ", href: "/help#faq" },
 ];
 
 const Header = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const { user } = useAuth();
   const totalItems = useCartStore((state) => state.items.reduce((sum, i) => sum + i.quantity, 0));
 
@@ -31,41 +35,26 @@ const Header = () => {
       </div>
 
       <header className="sticky top-0 left-0 right-0 z-50 bg-background border-b border-border">
-        <div className="max-w-[1600px] mx-auto px-6 md:px-10">
-          <div className="flex items-center py-5">
-            {/* Left nav */}
-            <nav className="hidden lg:flex items-center gap-4 flex-1">
-              {navLinks.map((link) => (
-                <Link key={link.label} to={link.href} className="nav-link">
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
+        <div className="max-w-[1600px] mx-auto px-5 md:px-8">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center py-4">
+            {/* Left: menu + search */}
+            <div className="flex items-center gap-4">
+              <button onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">
+                {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+              <button onClick={() => setSearchOpen(true)} aria-label="Search">
+                <Search className="w-5 h-5" />
+              </button>
+            </div>
 
-            {/* Mobile burger */}
-            <button
-              className="lg:hidden flex-1 text-left"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Menu"
-            >
-              {mobileMenuOpen ? <X className="w-7 h-7" /> : <Menu className="w-7 h-7" />}
-            </button>
-
-            {/* Centered logo */}
-            <Link to="/" className="flex-shrink-0 mx-auto lg:mx-4">
-              <img src={logo} alt="FLTHYMRKT" className="h-16 md:h-20 lg:h-24 w-auto" />
+            {/* Center: logo */}
+            <Link to="/" className="flex-shrink-0 justify-self-center">
+              <img src={logo} alt="FLTHYMRKT" className="h-14 md:h-20 w-auto" />
             </Link>
 
-            {/* Right */}
-            <div className="flex items-center gap-4 md:gap-5 flex-1 justify-end">
-              <button
-                onClick={() => setSearchOpen(true)}
-                className="nav-link hidden md:inline"
-                aria-label="Search"
-              >
-                <Search className="w-5 h-5 inline" />
-              </button>
-              <Link to={user ? "/account" : "/auth"} className="nav-link hidden md:inline">
+            {/* Right: account + cart */}
+            <div className="flex items-center gap-4 md:gap-6 justify-end">
+              <Link to={user ? "/account" : "/auth"} className="nav-link">
                 Account
               </Link>
               <button onClick={() => setCartOpen(true)} className="nav-link">
@@ -76,23 +65,30 @@ const Header = () => {
         </div>
       </header>
 
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 z-40 bg-background pt-28 px-6 animate-fade-in overflow-y-auto">
-          <nav className="flex flex-col gap-6 items-center">
-            {navLinks.map((link) => (
+      {menuOpen && (
+        <div className="fixed inset-0 z-[55] bg-background pt-24 px-8 animate-fade-in overflow-y-auto">
+          <button
+            onClick={() => setMenuOpen(false)}
+            className="absolute top-6 right-6"
+            aria-label="Close menu"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <nav className="flex flex-col gap-5 max-w-md">
+            {categoryLinks.map((link) => (
               <Link
                 key={link.label}
                 to={link.href}
-                className="nav-link text-2xl"
-                onClick={() => setMobileMenuOpen(false)}
+                className="nav-link text-[20px]"
+                onClick={() => setMenuOpen(false)}
               >
                 {link.label}
               </Link>
             ))}
             <Link
               to={user ? "/account" : "/auth"}
-              className="nav-link text-2xl"
-              onClick={() => setMobileMenuOpen(false)}
+              className="nav-link text-[20px]"
+              onClick={() => setMenuOpen(false)}
             >
               Account
             </Link>

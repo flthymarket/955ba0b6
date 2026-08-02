@@ -89,14 +89,46 @@ export async function fetchProducts(options?: {
 export async function searchProducts(term: string, limit = 20): Promise<StoreProduct[]> {
   const q = term.trim();
   if (!q) return [];
+  const like = `%${q}%`;
+
+  const [brandRes, variantRes] = await Promise.all([
+    supabase.from("brands").select("id").ilike("name", like),
+    supabase.from("product_variants").select("product_id").ilike("size", q),
+  ]);
+
+  const brandIds = (brandRes.data || []).map((b) => b.id);
+  const variantProductIds = (variantRes.data || []).map((v) => v.product_id);
+
+  const filters = [
+    `name.ilike.${like}`,
+    `description.ilike.${like}`,
+    `category.ilike.${like}`,
+    `color.ilike.${like}`,
+    `material.ilike.${like}`,
+    `sku.ilike.${like}`,
+  ];
+  if (brandIds.length) filters.push(`brand_id.in.(${brandIds.join(",")})`);
+  if (variantProductIds.length) filters.push(`id.in.(${variantProductIds.join(",")})`);
+
   const { data, error } = await supabase
     .from("products")
     .select(SELECT)
-    .or(`name.ilike.%${q}%,description.ilike.%${q}%,category.ilike.%${q}%,color.ilike.%${q}%`)
+    .or(filters.join(","))
     .limit(limit);
   if (error) throw error;
   return (data || []).map(normalize);
 }
+
+/** IDs of the newest N products — used for the "New" badge. */
+export async function fetchNewestIds(limit = 5): Promise<string[]> {
+  const { data } = await supabase
+    .from("products")
+    .select("id")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data || []).map((r) => r.id);
+}
+
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

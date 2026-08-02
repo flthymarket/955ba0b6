@@ -12,59 +12,57 @@ const BrandsPage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchBrands = async () => {
-      const { data, error } = await supabase
-        .from("brands")
-        .select("id, name")
-        .order("name");
-      
-      if (error) {
-        console.error("Error fetching brands:", error);
-      }
-      
-      if (data) {
-        // Trim names and filter out empty ones
-        setBrands(data.map(b => ({ ...b, name: b.name.trim() })).filter(b => b.name));
-      }
+    (async () => {
+      const { data, error } = await supabase.from("brands").select("id, name").order("name");
+      if (error) console.error("Error fetching brands:", error);
+      setBrands(
+        (data || [])
+          .map((b) => ({ ...b, name: b.name.trim() }))
+          .filter((b) => b.name)
+          .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }))
+      );
       setLoading(false);
-    };
-    
-    fetchBrands();
+    })();
   }, []);
 
+  // Group alphabetically, skipping letters with no brands
+  const groups = brands.reduce<Record<string, Brand[]>>((acc, b) => {
+    const letter = /[a-z]/i.test(b.name[0]) ? b.name[0].toUpperCase() : "#";
+    (acc[letter] ||= []).push(b);
+    return acc;
+  }, {});
+  const letters = Object.keys(groups).sort();
+
   return (
-    <main className="pt-32 pb-24 min-h-screen">
-      <div className="max-w-[800px] mx-auto px-6">
-        {/* Header - matches reference exactly */}
-        <h1 className="text-[13px] tracking-[0.25em] font-normal uppercase text-center mb-16 text-foreground">
-          Brands
-        </h1>
+    <main className="pt-10 pb-20 animate-fade-in">
+      <div className="max-w-[1500px] mx-auto px-5 md:px-8">
+        <h1 className="editorial-heading text-[11px] underline underline-offset-4 mb-10">Brands</h1>
 
-        {/* Simple centered vertical list */}
         {loading ? (
-          <div className="flex flex-col items-center gap-8">
-            {[...Array(8)].map((_, i) => (
-              <div key={i} className="h-4 w-32 bg-muted animate-pulse" />
-            ))}
-          </div>
+          <p className="editorial-heading text-muted-foreground py-16">Loading...</p>
+        ) : brands.length === 0 ? (
+          <p className="editorial-heading text-muted-foreground py-16">No brands yet</p>
         ) : (
-          <div className="flex flex-col items-center gap-10">
-            {brands.map((brand) => (
-              <Link
-                key={brand.id}
-                to={`/collection?brand=${encodeURIComponent(brand.name)}`}
-                className="text-[13px] tracking-[0.15em] uppercase font-normal text-muted-foreground hover:text-foreground transition-colors duration-300"
-              >
-                {brand.name}
-              </Link>
+          <div className="space-y-10">
+            {letters.map((letter) => (
+              <section key={letter}>
+                <p className="editorial-heading text-[10px] text-muted-foreground border-b border-border pb-2 mb-4">
+                  {letter}
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-2.5">
+                  {groups[letter].map((brand) => (
+                    <Link
+                      key={brand.id}
+                      to={`/collection?brand=${encodeURIComponent(brand.name)}`}
+                      className="text-[14px] leading-6 text-muted-foreground hover:text-foreground hover:underline transition-colors"
+                    >
+                      {brand.name}
+                    </Link>
+                  ))}
+                </div>
+              </section>
             ))}
           </div>
-        )}
-
-        {!loading && brands.length === 0 && (
-          <p className="text-center text-muted-foreground text-sm tracking-widest uppercase">
-            No brands available
-          </p>
         )}
       </div>
     </main>

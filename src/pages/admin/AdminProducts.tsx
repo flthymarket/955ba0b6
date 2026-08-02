@@ -1,480 +1,387 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "./AdminLayout";
-import { Plus, Pencil, Trash2, Search, RefreshCw, ExternalLink } from "lucide-react";
+import ImageUpload from "@/components/ImageUpload";
 import { useToast } from "@/hooks/use-toast";
+import { Plus, Trash2 } from "lucide-react";
 
-interface ShopifyProduct {
+const CATEGORIES = ["Tops", "Bottoms", "Bags", "Jewelry", "Accessories", "All"];
+const CONDITIONS = ["Pristine", "Excellent", "Very Good", "Good", "Fair"];
+
+interface Brand {
   id: string;
-  title: string;
-  handle: string;
-  status: string;
-  vendor: string;
-  productType: string;
-  totalInventory: number;
-  priceRangeV2: {
-    minVariantPrice: { amount: string; currencyCode: string };
-    maxVariantPrice: { amount: string; currencyCode: string };
-  };
-  featuredImage: { url: string } | null;
-  variants: {
-    edges: Array<{
-      node: {
-        id: string;
-        title: string;
-        price: string;
-        inventoryQuantity: number;
-      };
-    }>;
-  };
+  name: string;
 }
 
-interface ProductFormData {
-  title: string;
-  vendor: string;
-  productType: string;
-  descriptionHtml: string;
-  status: string;
-  variants: Array<{
-    price: string;
-    inventoryQuantity: number;
-    options: string[];
-  }>;
+interface VariantRow {
+  id?: string;
+  size: string;
+  quantity: number;
 }
 
-const PRODUCTS_QUERY = `
-  query GetProducts($first: Int!, $query: String) {
-    products(first: $first, query: $query) {
-      edges {
-        node {
-          id
-          title
-          handle
-          status
-          vendor
-          productType
-          totalInventory
-          priceRangeV2 {
-            minVariantPrice { amount currencyCode }
-            maxVariantPrice { amount currencyCode }
-          }
-          featuredImage { url }
-          variants(first: 10) {
-            edges {
-              node {
-                id
-                title
-                price
-                inventoryQuantity
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-`;
+interface ImageRow {
+  id?: string;
+  url: string;
+  sort_order: number;
+}
 
-const PRODUCT_QUERY = `
-  query GetProduct($id: ID!) {
-    product(id: $id) {
-      id
-      title
-      handle
-      status
-      vendor
-      productType
-      descriptionHtml
-      totalInventory
-      options {
-        name
-        values
-      }
-      variants(first: 20) {
-        edges {
-          node {
-            id
-            title
-            price
-            inventoryQuantity
-            selectedOptions {
-              name
-              value
-            }
-          }
-        }
-      }
-      images(first: 10) {
-        edges {
-          node {
-            id
-            url
-            altText
-          }
-        }
-      }
-    }
-  }
-`;
+interface ProductRow {
+  id: string;
+  name: string;
+  brand_id: string | null;
+  category: string;
+  price: number;
+  sku: string | null;
+  description: string | null;
+  condition: string | null;
+  condition_description: string | null;
+  color: string | null;
+  material: string | null
+  featured: boolean;
+  sold_out: boolean;
+  size_guide: string | null;
+  created_at?: string;
+  brands?: { name: string } | null;
+}
 
-const CREATE_PRODUCT_MUTATION = `
-  mutation CreateProduct($input: ProductInput!) {
-    productCreate(input: $input) {
-      product {
-        id
-        title
-      }
-      userErrors {
-        field
-        message
-      }
-    }
-  }
-`;
-
-const UPDATE_PRODUCT_MUTATION = `
-  mutation UpdateProduct($input: ProductInput!) {
-    productUpdate(input: $input) {
-      product {
-        id
-        title
-      }
-      userErrors {
-        field
-        message
-      }
-    }
-  }
-`;
-
-const DELETE_PRODUCT_MUTATION = `
-  mutation DeleteProduct($input: ProductDeleteInput!) {
-    productDelete(input: $input) {
-      deletedProductId
-      userErrors {
-        field
-        message
-      }
-    }
-  }
-`;
+const blank = (): ProductRow => ({
+  id: "",
+  name: "",
+  brand_id: null,
+  category: "Tops",
+  price: 0,
+  sku: "",
+  description: "",
+  condition: "Excellent",
+  condition_description: "",
+  color: "",
+  material: "",
+  featured: false,
+  sold_out: false,
+  size_guide: "",
+});
 
 const AdminProducts = () => {
-  const [products, setProducts] = useState<ShopifyProduct[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [editing, setEditing] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
+  const [products, setProducts] = useState<ProductRow[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [editing, setEditing] = useState<ProductRow | null>(null);
+  const [variants, setVariants] = useState<VariantRow[]>([]);
+  const [images, setImages] = useState<ImageRow[]>([]);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const [form, setForm] = useState<ProductFormData>({
-    title: "",
-    vendor: "FlthyMrkt",
-    productType: "Tops",
-    descriptionHtml: "",
-    status: "DRAFT",
-    variants: [{ price: "", inventoryQuantity: 1, options: ["Default Title"] }],
-  });
-
-  const categories = ["Tops", "Bottoms", "Accessories", "Outerwear", "Bags", "Jewelry"];
+  const load = async () => {
+    const [prodRes, brandRes] = await Promise.all([
+      supabase
+        .from("products")
+        .select("*, brands(name)")
+        .order("created_at", { ascending: false }),
+      supabase.from("brands").select("id, name").order("name"),
+    ]);
+    setProducts((prodRes.data as ProductRow[]) || []);
+    setBrands((brandRes.data as Brand[]) || []);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    fetchProducts();
+    load();
   }, []);
 
-  const shopifyAdminRequest = async (operation: string, variables: Record<string, unknown> = {}) => {
-    const { data, error } = await supabase.functions.invoke('shopify-admin', {
-      body: { operation, variables },
-    });
-
-    if (error) throw new Error(error.message);
-    if (data?.error) throw new Error(data.error);
-    return data;
+  const openNew = () => {
+    setEditing(blank());
+    setVariants([{ size: "OS", quantity: 1 }]);
+    setImages([]);
   };
 
-  const fetchProducts = async (query?: string) => {
-    setLoading(true);
-    try {
-      const data = await shopifyAdminRequest(PRODUCTS_QUERY, {
-        first: 50,
-        query: query || null,
-      });
-      setProducts(data.data.products.edges.map((e: { node: ShopifyProduct }) => e.node));
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      toast({
-        title: "Error loading products",
-        description: error instanceof Error ? error.message : "Failed to load products from Shopify",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+  const openEdit = async (p: ProductRow) => {
+    const [v, i] = await Promise.all([
+      supabase.from("product_variants").select("id, size, quantity").eq("product_id", p.id),
+      supabase.from("product_images").select("id, url, sort_order").eq("product_id", p.id).order("sort_order"),
+    ]);
+    setEditing(p);
+    setVariants((v.data as VariantRow[]) || []);
+    setImages((i.data as ImageRow[]) || []);
+  };
+
+  const save = async () => {
+    if (!editing) return;
+    if (!editing.name.trim()) {
+      toast({ title: "Name is required", variant: "destructive" });
+      return;
     }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this product from Shopify? This cannot be undone.")) return;
-
-    try {
-      const data = await shopifyAdminRequest(DELETE_PRODUCT_MUTATION, {
-        input: { id },
-      });
-
-      if (data.data.productDelete.userErrors?.length > 0) {
-        throw new Error(data.data.productDelete.userErrors[0].message);
-      }
-
-      toast({ title: "Product deleted from Shopify" });
-      fetchProducts();
-    } catch (error) {
-      toast({
-        title: "Error deleting product",
-        description: error instanceof Error ? error.message : "Failed to delete product",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
     setSaving(true);
 
-    try {
-      const input: Record<string, unknown> = {
-        title: form.title,
-        vendor: form.vendor,
-        productType: form.productType,
-        descriptionHtml: form.descriptionHtml,
-        status: form.status,
-      };
+    const payload = {
+      name: editing.name.trim(),
+      brand_id: editing.brand_id || null,
+      category: editing.category,
+      price: Number(editing.price) || 0,
+      sku: editing.sku || null,
+      description: editing.description || null,
+      condition: editing.condition || null,
+      condition_description: editing.condition_description || null,
+      color: editing.color || null,
+      material: editing.material || null,
+      featured: editing.featured,
+      sold_out: editing.sold_out,
+      size_guide: editing.size_guide || null,
+      slug: editing.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
+    };
 
-      if (editing) {
-        input.id = editing;
-        const data = await shopifyAdminRequest(UPDATE_PRODUCT_MUTATION, { input });
+    let productId = editing.id;
 
-        if (data.data.productUpdate.userErrors?.length > 0) {
-          throw new Error(data.data.productUpdate.userErrors[0].message);
-        }
-
-        toast({ title: "Product updated in Shopify" });
-      } else {
-        input.variants = form.variants.map(v => ({
-          price: v.price,
-          inventoryQuantities: {
-            availableQuantity: v.inventoryQuantity,
-            locationId: "gid://shopify/Location/1", // Default location
-          },
-        }));
-
-        const data = await shopifyAdminRequest(CREATE_PRODUCT_MUTATION, { input });
-
-        if (data.data.productCreate.userErrors?.length > 0) {
-          throw new Error(data.data.productCreate.userErrors[0].message);
-        }
-
-        toast({ title: "Product created in Shopify" });
+    if (productId) {
+      const { error } = await supabase.from("products").update(payload).eq("id", productId);
+      if (error) {
+        toast({ title: "Save failed", description: error.message, variant: "destructive" });
+        setSaving(false);
+        return;
       }
-
-      resetForm();
-      fetchProducts();
-    } catch (error) {
-      toast({
-        title: "Error saving product",
-        description: error instanceof Error ? error.message : "Failed to save product",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const startEdit = async (id: string) => {
-    try {
-      const data = await shopifyAdminRequest(PRODUCT_QUERY, { id });
-      const product = data.data.product;
-
-      if (product) {
-        setForm({
-          title: product.title,
-          vendor: product.vendor || "FlthyMrkt",
-          productType: product.productType || "Tops",
-          descriptionHtml: product.descriptionHtml || "",
-          status: product.status,
-          variants: product.variants.edges.map((e: { node: { price: string; inventoryQuantity: number; selectedOptions: Array<{ value: string }> } }) => ({
-            price: e.node.price,
-            inventoryQuantity: e.node.inventoryQuantity,
-            options: e.node.selectedOptions.map((o: { value: string }) => o.value),
-          })),
-        });
-        setEditing(id);
-        setShowForm(true);
+    } else {
+      const { data, error } = await supabase.from("products").insert(payload).select("id").single();
+      if (error || !data) {
+        toast({ title: "Save failed", description: error?.message, variant: "destructive" });
+        setSaving(false);
+        return;
       }
-    } catch (error) {
-      toast({
-        title: "Error loading product",
-        description: error instanceof Error ? error.message : "Failed to load product details",
-        variant: "destructive",
-      });
+      productId = data.id;
     }
-  };
 
-  const resetForm = () => {
-    setForm({
-      title: "",
-      vendor: "FlthyMrkt",
-      productType: "Tops",
-      descriptionHtml: "",
-      status: "DRAFT",
-      variants: [{ price: "", inventoryQuantity: 1, options: ["Default Title"] }],
-    });
+    // Replace variants + images
+    await supabase.from("product_variants").delete().eq("product_id", productId);
+    const cleanVariants = variants.filter((v) => v.size.trim());
+    if (cleanVariants.length) {
+      await supabase.from("product_variants").insert(
+        cleanVariants.map((v) => ({
+          product_id: productId,
+          size: v.size.trim(),
+          quantity: Math.max(0, Number(v.quantity) || 0),
+        }))
+      );
+    }
+
+    await supabase.from("product_images").delete().eq("product_id", productId);
+    const cleanImages = images.filter((i) => i.url);
+    if (cleanImages.length) {
+      await supabase.from("product_images").insert(
+        cleanImages.map((img, idx) => ({ product_id: productId, url: img.url, sort_order: idx }))
+      );
+    }
+
+    toast({ title: editing.id ? "Product updated" : "Product created" });
+    setSaving(false);
     setEditing(null);
-    setShowForm(false);
+    load();
   };
 
-  const handleSearch = () => {
-    fetchProducts(search ? `title:*${search}*` : undefined);
+  const remove = async (p: ProductRow) => {
+    if (!confirm(`Delete "${p.name}"? This cannot be undone.`)) return;
+    await supabase.from("product_variants").delete().eq("product_id", p.id);
+    await supabase.from("product_images").delete().eq("product_id", p.id);
+    const { error } = await supabase.from("products").delete().eq("id", p.id);
+    if (error) {
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Product deleted" });
+    load();
   };
 
-  const formatPrice = (amount: string) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(parseFloat(amount));
-  };
+  const inputCls = "w-full border border-border bg-transparent px-3 py-2 text-[12px] outline-none";
+  const labelCls = "text-[9px] tracking-widest uppercase text-muted-foreground block mb-1";
 
-  const inputCls = "w-full border border-border bg-transparent px-4 py-3 text-sm outline-none focus:border-foreground transition-colors duration-150";
-  const labelCls = "text-xs tracking-widest uppercase text-muted-foreground block mb-2";
-
-  if (showForm) {
+  if (editing) {
     return (
       <AdminLayout>
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-base tracking-[0.3em] uppercase font-extralight">
-            {editing ? "Edit Product" : "Add Product"}
+          <h1 className="text-[14px] tracking-[0.3em] uppercase font-extralight">
+            {editing.id ? "Edit Product" : "New Product"}
           </h1>
-          <button onClick={resetForm} className="text-xs tracking-[0.15em] uppercase text-muted-foreground hover:opacity-50 transition-opacity">
+          <button onClick={() => setEditing(null)} className="nav-link text-[9px] text-muted-foreground">
             ← Back
           </button>
         </div>
 
-        <form onSubmit={handleSave} className="max-w-2xl space-y-8">
-          <div className="border border-border p-6 space-y-4">
-            <h3 className="text-sm tracking-[0.2em] uppercase font-light mb-4">Product Details</h3>
-
+        <div className="max-w-3xl space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className={labelCls}>Title *</label>
-              <input
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                required
-                className={inputCls}
-                placeholder="Product name"
-              />
+              <label className={labelCls}>Name</label>
+              <input className={inputCls} value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelCls}>Vendor</label>
-                <input
-                  value={form.vendor}
-                  onChange={(e) => setForm({ ...form, vendor: e.target.value })}
-                  className={inputCls}
-                />
-              </div>
-              <div>
-                <label className={labelCls}>Product Type</label>
-                <select
-                  value={form.productType}
-                  onChange={(e) => setForm({ ...form, productType: e.target.value })}
-                  className={inputCls}
-                >
-                  {categories.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
             <div>
-              <label className={labelCls}>Status</label>
+              <label className={labelCls}>Brand</label>
               <select
-                value={form.status}
-                onChange={(e) => setForm({ ...form, status: e.target.value })}
                 className={inputCls}
+                value={editing.brand_id || ""}
+                onChange={(e) => setEditing({ ...editing, brand_id: e.target.value || null })}
               >
-                <option value="DRAFT">Draft</option>
-                <option value="ACTIVE">Active</option>
-                <option value="ARCHIVED">Archived</option>
+                <option value="">— None —</option>
+                {brands.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
               </select>
             </div>
-
             <div>
-              <label className={labelCls}>Description</label>
-              <textarea
-                value={form.descriptionHtml}
-                onChange={(e) => setForm({ ...form, descriptionHtml: e.target.value })}
-                className={`${inputCls} min-h-[120px] resize-none`}
-                placeholder="Product description (supports HTML)"
+              <label className={labelCls}>Category</label>
+              <select className={inputCls} value={editing.category} onChange={(e) => setEditing({ ...editing, category: e.target.value })}>
+                {CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Price (USD)</label>
+              <input
+                type="number"
+                step="0.01"
+                className={inputCls}
+                value={editing.price}
+                onChange={(e) => setEditing({ ...editing, price: Number(e.target.value) })}
               />
             </div>
-          </div>
-
-          {!editing && (
-            <div className="border border-border p-6 space-y-4">
-              <h3 className="text-sm tracking-[0.2em] uppercase font-light mb-4">Pricing</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelCls}>Price *</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={form.variants[0]?.price || ""}
-                    onChange={(e) => {
-                      const newVariants = [...form.variants];
-                      newVariants[0] = { ...newVariants[0], price: e.target.value };
-                      setForm({ ...form, variants: newVariants });
-                    }}
-                    required
-                    className={inputCls}
-                    placeholder="0.00"
-                  />
-                </div>
-                <div>
-                  <label className={labelCls}>Inventory Quantity</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={form.variants[0]?.inventoryQuantity || 0}
-                    onChange={(e) => {
-                      const newVariants = [...form.variants];
-                      newVariants[0] = { ...newVariants[0], inventoryQuantity: parseInt(e.target.value) || 0 };
-                      setForm({ ...form, variants: newVariants });
-                    }}
-                    className={inputCls}
-                  />
-                </div>
-              </div>
+            <div>
+              <label className={labelCls}>SKU</label>
+              <input className={inputCls} value={editing.sku || ""} onChange={(e) => setEditing({ ...editing, sku: e.target.value })} />
             </div>
-          )}
-
-          <div className="flex gap-4">
-            <button
-              type="submit"
-              disabled={saving}
-              className="bg-primary text-primary-foreground px-10 py-4 text-sm tracking-[0.15em] uppercase font-light hover:opacity-80 transition-opacity duration-150 min-h-[52px] disabled:opacity-50"
-            >
-              {saving ? "Saving..." : editing ? "Update in Shopify" : "Create in Shopify"}
-            </button>
-            <button
-              type="button"
-              onClick={resetForm}
-              className="border border-border px-10 py-4 text-sm tracking-[0.15em] uppercase font-light hover:border-foreground transition-all duration-150 min-h-[52px]"
-            >
-              Cancel
-            </button>
+            <div>
+              <label className={labelCls}>Color</label>
+              <input className={inputCls} value={editing.color || ""} onChange={(e) => setEditing({ ...editing, color: e.target.value })} />
+            </div>
+            <div>
+              <label className={labelCls}>Material</label>
+              <input className={inputCls} value={editing.material || ""} onChange={(e) => setEditing({ ...editing, material: e.target.value })} />
+            </div>
+            <div>
+              <label className={labelCls}>Condition</label>
+              <select className={inputCls} value={editing.condition || ""} onChange={(e) => setEditing({ ...editing, condition: e.target.value })}>
+                {CONDITIONS.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-        </form>
+
+          <div>
+            <label className={labelCls}>Description (one detail per line — shown as a list)</label>
+            <textarea
+              className={`${inputCls} min-h-[140px] resize-none`}
+              value={editing.description || ""}
+              onChange={(e) => setEditing({ ...editing, description: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <label className={labelCls}>Condition Notes</label>
+            <textarea
+              className={`${inputCls} min-h-[80px] resize-none`}
+              value={editing.condition_description || ""}
+              onChange={(e) => setEditing({ ...editing, condition_description: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <label className={labelCls}>Size Guide / Measurements</label>
+            <textarea
+              className={`${inputCls} min-h-[80px] resize-none`}
+              value={editing.size_guide || ""}
+              onChange={(e) => setEditing({ ...editing, size_guide: e.target.value })}
+            />
+          </div>
+
+          <div className="flex gap-8">
+            <label className="flex items-center gap-2 text-[11px]">
+              <input type="checkbox" checked={editing.featured} onChange={(e) => setEditing({ ...editing, featured: e.target.checked })} />
+              Featured
+            </label>
+            <label className="flex items-center gap-2 text-[11px]">
+              <input type="checkbox" checked={editing.sold_out} onChange={(e) => setEditing({ ...editing, sold_out: e.target.checked })} />
+              Sold Out
+            </label>
+          </div>
+
+          {/* Sizes / inventory */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="editorial-heading text-[10px]">Sizes & Inventory</h2>
+              <button
+                onClick={() => setVariants([...variants, { size: "", quantity: 1 }])}
+                className="nav-link text-[9px] flex items-center gap-1"
+              >
+                <Plus className="w-3 h-3" /> Add size
+              </button>
+            </div>
+            <div className="space-y-2">
+              {variants.map((v, idx) => (
+                <div key={idx} className="flex items-center gap-3">
+                  <input
+                    className={inputCls}
+                    placeholder="Size (S, M, L, OS...)"
+                    value={v.size}
+                    onChange={(e) =>
+                      setVariants(variants.map((x, i) => (i === idx ? { ...x, size: e.target.value } : x)))
+                    }
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    className={`${inputCls} max-w-[110px]`}
+                    value={v.quantity}
+                    onChange={(e) =>
+                      setVariants(variants.map((x, i) => (i === idx ? { ...x, quantity: Number(e.target.value) } : x)))
+                    }
+                  />
+                  <button onClick={() => setVariants(variants.filter((_, i) => i !== idx))} aria-label="Remove size">
+                    <Trash2 className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Images */}
+          <div>
+            <h2 className="editorial-heading text-[10px] mb-3">Images (first is the main image)</h2>
+            <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+              {images.map((img, idx) => (
+                <div key={idx}>
+                  <ImageUpload
+                    bucket="product-images"
+                    currentUrl={img.url}
+                    onUpload={(url) =>
+                      setImages(
+                        url
+                          ? images.map((x, i) => (i === idx ? { ...x, url } : x))
+                          : images.filter((_, i) => i !== idx)
+                      )
+                    }
+                  />
+                </div>
+              ))}
+              <ImageUpload
+                bucket="product-images"
+                onUpload={(url) => url && setImages([...images, { url, sort_order: images.length }])}
+              />
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-2">
+              Images are displayed uncropped in a uniform frame — any aspect ratio is safe to upload.
+            </p>
+          </div>
+
+          <button
+            onClick={save}
+            disabled={saving}
+            className="bg-primary text-primary-foreground px-8 py-3 editorial-heading text-[11px] min-h-[48px] disabled:opacity-50"
+          >
+            {saving ? "Saving..." : "Save Product"}
+          </button>
+        </div>
       </AdminLayout>
     );
   }
@@ -482,104 +389,37 @@ const AdminProducts = () => {
   return (
     <AdminLayout>
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-base tracking-[0.3em] uppercase font-extralight">Products</h1>
-        <div className="flex gap-3">
-          <button
-            onClick={() => fetchProducts()}
-            className="border border-border px-4 py-2 text-xs tracking-[0.15em] uppercase font-light flex items-center gap-2 hover:border-foreground transition-all min-h-[40px]"
-          >
-            <RefreshCw className="w-3 h-3" /> Refresh
-          </button>
-          <button
-            onClick={() => { resetForm(); setShowForm(true); }}
-            className="bg-primary text-primary-foreground px-6 py-2 text-xs tracking-[0.15em] uppercase font-light flex items-center gap-2 hover:opacity-80 min-h-[40px]"
-          >
-            <Plus className="w-3 h-3" /> Add Product
-          </button>
-        </div>
-      </div>
-
-      <div className="flex gap-3 mb-6">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            placeholder="Search products..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            className="w-full border border-border bg-transparent pl-11 pr-4 py-3 text-sm outline-none focus:border-foreground"
-          />
-        </div>
-        <button
-          onClick={handleSearch}
-          className="border border-border px-6 py-3 text-xs tracking-[0.15em] uppercase font-light hover:border-foreground transition-all"
-        >
-          Search
+        <h1 className="text-[14px] tracking-[0.3em] uppercase font-extralight">Products ({products.length})</h1>
+        <button onClick={openNew} className="bg-primary text-primary-foreground px-5 py-2.5 editorial-heading text-[10px] flex items-center gap-2">
+          <Plus className="w-3 h-3" /> New Product
         </button>
       </div>
 
-
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <p className="text-muted-foreground text-sm tracking-widest uppercase">Loading from Shopify...</p>
-        </div>
+        <p className="editorial-heading text-[10px] text-muted-foreground py-16 text-center">Loading...</p>
+      ) : products.length === 0 ? (
+        <p className="editorial-heading text-[10px] text-muted-foreground py-16 text-center">No products yet</p>
       ) : (
         <div className="border border-border">
-          <div className="hidden md:grid grid-cols-[80px_1fr_120px_100px_80px_100px] gap-4 px-6 py-3 border-b border-border bg-muted">
-            <span className="text-[10px] tracking-widest uppercase text-muted-foreground">Image</span>
-            <span className="text-[10px] tracking-widest uppercase text-muted-foreground">Product</span>
-            <span className="text-[10px] tracking-widest uppercase text-muted-foreground">Type</span>
-            <span className="text-[10px] tracking-widest uppercase text-muted-foreground">Price</span>
-            <span className="text-[10px] tracking-widest uppercase text-muted-foreground">Stock</span>
-            <span className="text-[10px] tracking-widest uppercase text-muted-foreground">Actions</span>
-          </div>
-
           {products.map((p) => (
-            <div key={p.id} className="grid md:grid-cols-[80px_1fr_120px_100px_80px_100px] gap-4 px-6 py-4 border-b border-border last:border-b-0 items-center">
-              <div className="w-16 h-16 bg-secondary overflow-hidden hidden md:block">
-                {p.featuredImage ? (
-                  <img src={p.featuredImage.url} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-[10px]">No image</div>
-                )}
+            <div key={p.id} className="flex items-center justify-between gap-4 px-5 py-4 border-b border-border last:border-b-0">
+              <div className="min-w-0">
+                <p className="text-[9px] tracking-widest uppercase text-muted-foreground">{p.brands?.name || "—"}</p>
+                <p className="text-[12px] font-light truncate">{p.name}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {p.category} · ${Number(p.price).toLocaleString()} {p.sold_out ? "· SOLD OUT" : ""}
+                </p>
               </div>
-
-              <div className="md:col-span-1">
-                <p className="text-sm font-light truncate">{p.title}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{p.vendor}</p>
-                <span className={`text-[9px] uppercase tracking-wider px-2 py-0.5 inline-block mt-1 ${
-                  p.status === 'ACTIVE' ? 'bg-green-500/10 text-green-600' :
-                  p.status === 'DRAFT' ? 'bg-yellow-500/10 text-yellow-600' :
-                  'bg-muted text-muted-foreground'
-                }`}>
-                  {p.status}
-                </span>
-              </div>
-
-              <span className="text-xs text-muted-foreground hidden md:block">{p.productType || '—'}</span>
-
-              <span className="text-sm font-light hidden md:block">
-                {formatPrice(p.priceRangeV2.minVariantPrice.amount)}
-              </span>
-
-              <span className="text-sm font-light hidden md:block">{p.totalInventory}</span>
-
-              <div className="flex gap-3">
-                <button onClick={() => startEdit(p.id)} className="text-muted-foreground hover:text-foreground transition-colors">
-                  <Pencil className="w-4 h-4" />
+              <div className="flex items-center gap-4 flex-shrink-0">
+                <button onClick={() => openEdit(p)} className="nav-link text-[9px]">
+                  Edit
                 </button>
-                <button onClick={() => handleDelete(p.id)} className="text-muted-foreground hover:text-destructive transition-colors">
-                  <Trash2 className="w-4 h-4" />
+                <button onClick={() => remove(p)} aria-label="Delete product">
+                  <Trash2 className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
                 </button>
               </div>
             </div>
           ))}
-
-          {products.length === 0 && !loading && (
-            <p className="px-6 py-12 text-center text-muted-foreground text-xs tracking-widest uppercase">
-              No products found
-            </p>
-          )}
         </div>
       )}
     </AdminLayout>
