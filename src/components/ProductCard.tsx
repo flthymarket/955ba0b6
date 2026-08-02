@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { Heart } from "lucide-react";
 import { toast } from "sonner";
 import {
   finalPrice,
@@ -12,15 +13,22 @@ import {
   type StoreProduct,
 } from "@/lib/store";
 import { useCartStore } from "@/stores/cartStore";
+import { useWishlistStore } from "@/stores/wishlistStore";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ProductCardProps {
   product: StoreProduct;
   showQuickAdd?: boolean;
+  isNew?: boolean;
 }
 
-const ProductCard = ({ product, showQuickAdd = true }: ProductCardProps) => {
+const ProductCard = ({ product, showQuickAdd = true, isNew = false }: ProductCardProps) => {
   const [hovered, setHovered] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
+  const { user } = useAuth();
+  const wishlistIds = useWishlistStore((s) => s.ids);
+  const toggleWishlist = useWishlistStore((s) => s.toggle);
+  const saved = wishlistIds.includes(product.id);
 
   const image = primaryImage(product);
   const hoverImage = secondaryImage(product);
@@ -47,6 +55,17 @@ const ProductCard = ({ product, showQuickAdd = true }: ProductCardProps) => {
     result.ok ? toast.success(result.message) : toast.error(result.message);
   };
 
+  const onSave = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      toast.error("Create an account to save items");
+      return;
+    }
+    const nowSaved = await toggleWishlist(user.id, product.id);
+    toast.success(nowSaved ? "Saved to wishlist" : "Removed from wishlist");
+  };
+
   return (
     <Link
       to={productUrl(product)}
@@ -54,12 +73,12 @@ const ProductCard = ({ product, showQuickAdd = true }: ProductCardProps) => {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <div className="product-frame mb-5">
+      <div className="product-frame mb-4">
         {image && (
           <img
             src={image}
             alt={product.name}
-            className={hovered && hoverImage ? "opacity-0" : "opacity-100"}
+            className={`pf-img ${hovered && hoverImage ? "opacity-0" : "opacity-100"}`}
             loading="lazy"
           />
         )}
@@ -67,14 +86,31 @@ const ProductCard = ({ product, showQuickAdd = true }: ProductCardProps) => {
           <img
             src={hoverImage}
             alt={product.name}
-            className={`absolute inset-0 m-auto ${hovered ? "opacity-100" : "opacity-0"}`}
+            className={`pf-img ${hovered ? "opacity-100" : "opacity-0"}`}
             loading="lazy"
           />
         )}
 
+        {isNew && !soldOut && (
+          <span className="absolute top-2 left-2 z-10 editorial-heading text-[9px] px-2 py-1 bg-foreground text-background">
+            New
+          </span>
+        )}
+
+        <button
+          type="button"
+          onClick={onSave}
+          aria-label={saved ? "Remove from wishlist" : "Save to wishlist"}
+          className="absolute top-2 right-2 z-10 p-1.5"
+        >
+          <Heart
+            className={`w-[18px] h-[18px] transition-all ${saved ? "fill-foreground text-foreground" : "text-foreground/50 hover:text-foreground"}`}
+          />
+        </button>
+
         {soldOut && (
           <div className="absolute inset-x-0 bottom-0 flex items-center justify-center pointer-events-none pb-2">
-            <span className="font-mono-ui text-[11px] px-3 py-1 bg-foreground text-background">SOLD OUT</span>
+            <span className="editorial-heading text-[10px] px-3 py-1 bg-foreground text-background">SOLD OUT</span>
           </div>
         )}
 
@@ -88,7 +124,7 @@ const ProductCard = ({ product, showQuickAdd = true }: ProductCardProps) => {
         )}
       </div>
 
-      <p className="product-title max-w-[80%] mx-auto pb-1">{product.name}</p>
+      <p className="product-title max-w-[85%] mx-auto pb-1">{product.name}</p>
       {active && price < product.price ? (
         <p className="product-price">
           <span className="line-through opacity-50 mr-2">{money(product.price)}</span>
@@ -96,6 +132,9 @@ const ProductCard = ({ product, showQuickAdd = true }: ProductCardProps) => {
         </p>
       ) : (
         <p className="product-price">{money(product.price)}</p>
+      )}
+      {saved && (
+        <p className="editorial-heading text-[9px] text-center text-muted-foreground pt-1">Saved</p>
       )}
     </Link>
   );
